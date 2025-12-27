@@ -1,26 +1,90 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  /* This automatically creates classes like bg-background, bg-card, etc. */
+  --color-background: var(--bg-main);
+  --color-card: var(--card-bg);
+  --color-primary: var(--accent);
+  --color-text-main: var(--text-main);
+  
+  --radius-theme: var(--radius);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+@layer base {
+  /* Default theme (light) */
+  :root,
+  html:not([data-theme]),
+  html[data-theme='default'] {
+    --bg-main: #ffffff;
+    --card-bg: #f8fafc;
+    --text-main: #0f172a;
+    --accent: #2563eb;
+    --radius: 0.5rem;
+  }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+  /* Dark theme */
+  html[data-theme='dark'] {
+    --bg-main: #020617;
+    --card-bg: #1e293b;
+    --text-main: #f1f5f9;
+    --accent: #38bdf8;
+    --radius: 0.5rem;
+  }
+
+  /* Organic theme */
+  html[data-theme='organic'] {
+    --bg-main: #f3f4f0;
+    --card-bg: #ffffff;
+    --text-main: #1c1d1a;
+    --accent: #4a7c44;
+    --radius: 1.5rem;
+  }
+
+  /* Creamsicle theme */
+  html[data-theme='creamsicle'] {
+    --bg-main: #fffaf0;
+    --card-bg: #ffffff;
+    --text-main: #431407;
+    --accent: #f97316;
+    --radius: 1rem;
+  }
+
+  /* Cyberpunk theme */
+  html[data-theme='cyberpunk'] {
+    --bg-main: #09090b;
+    --card-bg: #18181b;
+    --text-main: #fafafa;
+    --accent: #d946ef;
+    --radius: 0px;
+  }
+
+  /* Heritage theme */
+  html[data-theme='heritage'] {
+    --bg-main: #f1f5f9;
+    --card-bg: #ffffff;
+    --text-main: #0f172a;
+    --accent: #1e3a8a;
+    --radius: 0.25rem;
   }
 }
 
+/* Base styles - ensure background color is applied */
+html {
+  background-color: var(--bg-main) !important;
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background-color: var(--bg-main) !important;
+  color: var(--text-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
   font-family: Arial, Helvetica, sans-serif;
+  min-height: 100vh;
+}
+
+@theme inline {
+  --color-background: var(--bg-main);
+  --color-foreground: var(--text-main);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
 }
