@@ -1,22 +1,31 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useParams } from 'next/navigation';
+import { getDictionary } from '@/lib/get-dictionary';
 
 export default function ThemeSwitcher() {
   const [theme, setTheme] = useState('default');
   const [mounted, setMounted] = useState(false);
+  const [dict, setDict] = useState<any>(null);
+  
+  const params = useParams();
+  const lang = (params?.lang as string) || 'pt';
 
-  // When the component loads, check if a theme was saved in the browser
   useEffect(() => {
     setMounted(true);
+    
+    // Carregar tema salvo
     const savedTheme = localStorage.getItem('app-theme') || 'default';
     setTheme(savedTheme);
-    // Set theme attribute on html element
-    const html = document.documentElement;
-    html.setAttribute('data-theme', savedTheme);
-    // Force update background color
-    html.style.backgroundColor = '';
-    document.body.style.backgroundColor = '';
-  }, []);
+    document.documentElement.setAttribute('data-theme', savedTheme);
+
+    // Carregar dicionário para as labels dos temas
+    async function loadDict() {
+      const d = await getDictionary(lang as 'pt' | 'en');
+      setDict(d);
+    }
+    loadDict();
+  }, [lang]);
 
   const changeTheme = (newTheme: string) => {
     setTheme(newTheme);
@@ -33,10 +42,11 @@ export default function ThemeSwitcher() {
   // Prevent "Hydration Mismatch" (dropdown flickering on load)
   if (!mounted) return <div className="w-32 h-9 bg-card animate-pulse rounded-theme" />;
 
+
   return (
     <div className="flex items-center gap-2">
       <label htmlFor="theme-select" className="text-xs font-medium text-text-main/60">
-        THEME
+      {dict?.theme?.theme}
       </label>
       <select
         id="theme-select"
@@ -44,12 +54,12 @@ export default function ThemeSwitcher() {
         onChange={(e) => changeTheme(e.target.value)}
         className="bg-card text-text-main border border-text-main/10 rounded-theme px-3 py-1.5 text-sm outline-none focus:ring-2 focus:ring-primary shadow-sm cursor-pointer"
       >
-        <option value="default">✨ Modern Light</option>
-        <option value="creamsicle">🍦 Creamsicle</option>
-        <option value="organic">🌿 Organic Green</option>
-        <option value="heritage">🏛️ Heritage</option>
-        <option value="dark">🌙 Midnight Dark</option>
-        <option value="cyberpunk">🌌 Cyberpunk</option>
+        <option value="default">✨ {dict?.theme?.themeModern}</option>
+        <option value="creamsicle">🍦 {dict?.theme?.themeCreamsicle}</option>
+        <option value="organic">🌿 {dict?.theme?.themeOrganic}</option>
+        <option value="heritage">🏛️ {dict?.theme?.themeHeritage}</option>
+        <option value="dark">🌙 {dict?.theme?.themeDark}</option>
+        <option value="cyberpunk">🌌 {dict?.theme?.themeCyberpunk}</option>
       </select>
     </div>
   );

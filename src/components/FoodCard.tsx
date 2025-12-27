@@ -5,21 +5,21 @@ interface Food {
   name: string;
   calories: number;
   health_score: number;
-  image_url: string;
+  front_photo_url: string;
 }
 
-export default function FoodCard({ food }: { food: Food }) {
+export default function FoodCard({ food, dict }: { food: Food, dict: any }) {
   return (
     <div className="border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow bg-white">
       <div className="relative h-48 w-full bg-gray-100">
-        {food.image_url ? (
+      {food.front_photo_url ? (
           <img 
-            src={food.image_url} 
+            src={food.front_photo_url} 
             alt={food.name} 
             className="w-full h-full object-cover"
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-gray-400">No Image</div>
+          <div className="flex items-center justify-center h-full text-gray-400">{dict?.home?.noImage || 'No Image'}</div>
         )}
       </div>
       

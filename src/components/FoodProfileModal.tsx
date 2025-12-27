@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import NutritionLabel from './NutritionLabel';
 import type { Food } from '@/types/food';
 
@@ -8,12 +9,18 @@ interface FoodProfileModalProps {
   food: Food | null;
   isOpen: boolean;
   onClose: () => void;
+  dict: any;
 }
 
-export default function FoodProfileModal({ food, isOpen, onClose }: FoodProfileModalProps) {
-  const [multiplier, setMultiplier] = useState(1);
+export default function FoodProfileModal({ food, isOpen, onClose, dict }: FoodProfileModalProps) {
+  const params = useParams();
+  const lang = (params?.lang as string) || 'pt';
 
-  if (!isOpen || !food) return null;
+  if (!isOpen || !food || !dict) return null;
+
+  const [multiplier, setMultiplier] = useState(1);
+  const t = dict.home;
+  const tm = dict.manage;
 
   // Calculate nutrition values based on portion size and multiplier
   const baseRatio = (food.portion_size_value || 100) / 100;
@@ -51,6 +58,7 @@ export default function FoodProfileModal({ food, isOpen, onClose }: FoodProfileM
                         multiplier={multiplier} 
                         usePortion={true}
                         onMultiplierChange={setMultiplier}
+                        dict={dict}
                     />
                 </div>
             </div>
@@ -60,10 +68,14 @@ export default function FoodProfileModal({ food, isOpen, onClose }: FoodProfileM
                 <div className="space-y-6">
                     <div>
                         <span className="text-xs font-bold text-primary uppercase tracking-widest">
-                            {food.brand || 'Generic Brand'}
+                        {food.brand || t.noBrand || 'Generic'}
                         </span>
                         <h2 className="text-3xl font-black text-text-main leading-tight">{food.name}</h2>
-                        <p className="text-text-main/60 italic text-sm mt-1">{food.category}</p>
+                        <p className="text-text-main/60 italic text-sm mt-1">
+                        {(food.category && dict.categories) 
+                        ? (dict.categories[food.category as keyof typeof dict.categories] || food.category)
+                        : food.category}
+                        </p>
                     </div>
 
                     {/* HFS SCORE Visualizer */}
@@ -88,10 +100,10 @@ export default function FoodProfileModal({ food, isOpen, onClose }: FoodProfileM
 
                     {/* Total Summary Card */}
                     <div className="bg-gray-900 text-white p-6 rounded-2xl shadow-lg transform transition hover:scale-[1.02]">
-                        <p className="text-xs font-bold text-gray-400 uppercase mb-3">Total for current consumption</p>
+                        <p className="text-xs font-bold text-gray-400 uppercase mb-3">{t.totalConsumption || 'Total for current consumption'}</p>
                         <div className="flex justify-between items-end">
                             <div>
-                                <p className="text-xs text-gray-400 font-bold uppercase mb-1">Calories</p>
+                                <p className="text-xs text-gray-400 font-bold uppercase mb-1">{t.calories}</p>
                                 <span className="text-5xl font-black text-white">
                                 {calculateCalories(food.energy_kcal)}
                                 </span>
@@ -111,16 +123,16 @@ export default function FoodProfileModal({ food, isOpen, onClose }: FoodProfileM
                 <div className="space-y-3 pt-8">
                     <div className="mt-6 pt-4 border-t border-text-main/10 flex items-center justify-between">
                         <div className="text-[10px] text-text-main/50 italic">
-                            Last update: {food.last_update 
-                            ? new Date(food.last_update).toLocaleDateString('pt-BR') 
+                        {t.lastUpdate || 'Last update'}: {food.created_at 
+                            ? new Date(food.created_at).toLocaleDateString(lang === 'pt' ? 'pt-BR' : 'en-US') 
                             : 'Manual Entry'}
                         </div>
                         
                         <Link
-                        href={`/edit/${food.id}`}
+                        href={`/${lang}/edit/${food.id}`}
                         className="flex items-center justify-center w-full bg-primary text-white py-4 rounded-theme font-bold text-lg hover:opacity-90 shadow-lg transition active:scale-95"
                         >
-                        ✏️ Edit Record
+                        ✏️ {tm?.edit || 'Edit Record'}
                         </Link>
                     </div>
                 </div>

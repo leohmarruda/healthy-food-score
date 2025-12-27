@@ -1,3 +1,4 @@
+'use client';
 import type { Food, FoodFormData } from '@/types/food';
 
 interface NutritionLabelProps {
@@ -5,16 +6,20 @@ interface NutritionLabelProps {
   usePortion?: boolean;
   multiplier?: number;
   onMultiplierChange?: (newMultiplier: number) => void;
+  dict: any; // Adicionado
 }
 
 export default function NutritionLabel({ 
   data, 
   usePortion = true, 
   multiplier = 1,
-  onMultiplierChange
+  onMultiplierChange,
+  dict
 }: NutritionLabelProps) {
-  if (!data) return null;
-  
+  if (!data || !dict) return null;
+
+  const t = dict.nutrition || {}; // Usaremos uma seção nova no JSON
+
   // Calculate nutrition values based on portion size and multiplier
   const baseRatio = usePortion ? ((data.portion_size_value || 100) / 100) : 1;
   const totalRatio = baseRatio * multiplier;
@@ -37,9 +42,11 @@ export default function NutritionLabel({
 
   return (
     <div className="bg-white p-4 border-2 border-black max-w-[300px] font-sans text-black shadow-md">
-      <h2 className="text-3xl font-black leading-tight border-b-8 border-black">Nutrition Facts</h2>
+      <h2 className="text-3xl font-black leading-tight border-b-8 border-black">
+        {t.factsTitle || 'Nutrition Facts'}
+      </h2>
       <div className="border-b-4 border-black py-1 font-bold flex justify-between items-center">
-        <span>Serving size</span>
+      <span>{t.servingSize || 'Serving size'}</span>
         <span className="flex items-center gap-1">
           {usePortion 
             ? `${Math.round((data.portion_size_value || 100) * multiplier)}${data.portion_unit || 'g'}` 
@@ -71,52 +78,51 @@ export default function NutritionLabel({
           )}
         </span>
       </div>
-  
+      
       <div className="border-b-8 border-black py-1 flex justify-between items-end">
-        <span className="text-2xl font-black">Calories</span>
+        <span className="text-2xl font-black">{t.calories || 'Calories'}</span>
         <span className="text-4xl font-black">{formatCalories(data.energy_kcal)}</span>
       </div>
   
       <div className="text-sm border-b border-black py-1 text-right font-bold">
-        % Daily Value*
+        % {t.dailyValue || 'Daily Value'}*
       </div>
   
-      {/* Macronutrients */}
       <div className="border-b border-black py-1 flex justify-between">
-        <span><span className="font-bold">Total Fat</span> {formatValue(data.fat_total_g)}g</span>
+        <span><span className="font-bold">{t.fat || 'Total Fat'}</span> {formatValue(data.fat_total_g)}g</span>
         <span className="font-bold">{calculatePercentage(data.fat_total_g, 78)}%</span>
       </div>
 
       <div className="border-b border-black py-1 pl-4 flex justify-between text-sm">
-        <span>Saturated Fat {formatValue(data.saturated_fat_g)}g</span>
+        <span>{t.saturatedFat || 'Saturated Fat'} {formatValue(data.saturated_fat_g)}g</span>
         <span className="font-bold">{calculatePercentage(data.saturated_fat_g, 20)}%</span>
       </div>
 
       <div className="border-b border-black py-1 flex justify-between">
         <span>
-          <span className="font-bold">Sodium</span> {Math.round((data.sodium_mg || 0) * totalRatio)}mg
+          <span className="font-bold">{t.sodium || 'Sodium'}</span> {Math.round((data.sodium_mg || 0) * totalRatio)}mg
         </span>
         <span className="font-bold">{calculatePercentage(data.sodium_mg, 2300)}%</span>
       </div>
 
       <div className="border-b border-black py-1 flex justify-between">
-        <span><span className="font-bold">Total Carbohydrate</span> {formatValue(data.carbs_total_g)}g</span>
+        <span><span className="font-bold">{t.carbs || 'Total Carbohydrate'}</span> {formatValue(data.carbs_total_g)}g</span>
         <span className="font-bold">{calculatePercentage(data.carbs_total_g, 275)}%</span>
       </div>
 
       <div className="border-b border-black py-1 pl-4 flex justify-between text-sm">
-        <span>Dietary Fiber {formatValue(data.fiber_g)}g</span>
+        <span>{t.fiber || 'Dietary Fiber'} {formatValue(data.fiber_g)}g</span>
         <span className="font-bold">{calculatePercentage(data.fiber_g, 28)}%</span>
       </div>
 
       <div className="border-b-4 border-black py-1 flex justify-between">
-        <span><span className="font-bold">Protein</span> {formatValue(data.protein_g)}g</span>
+        <span><span className="font-bold">{t.protein || 'Protein'}</span> {formatValue(data.protein_g)}g</span>
         <span></span>
       </div>
 
-      <p className="text-[10px] leading-tight mt-2">
-        * Based on a {usePortion ? `${data.portion_size_value || 100}${data.portion_unit || 'g'}` : '100g'} serving.
-        The % Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is used for general nutrition advice.
+      <p className="text-[10px] leading-tight mt-2 italic">
+        {t.footnote?.replace('{size}', usePortion ? `${data.portion_size_value}${data.portion_unit}` : '100g') || 
+        `* Based on a serving size. 2,000 calories a day is used for general nutrition advice.`}
       </p>
     </div>
   );

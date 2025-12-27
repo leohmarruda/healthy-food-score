@@ -1,16 +1,35 @@
 'use client';
+import React from 'react'; // Importação explícita do React
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
 import type { Food } from '@/types/food';
+import { getDictionary } from '@/lib/get-dictionary';
+import { useParams } from 'next/navigation'; 
+import FoodProfileModal from '@/components/FoodProfileModal';
 
 export default function ManageFoods() {
   const [foods, setFoods] = useState<Food[]>([]);
   const [loading, setLoading] = useState(true);
+  const [dict, setDict] = useState<any>(null);
+  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const params = useParams();
+  const lang = (params?.lang as string) || 'pt';
 
   useEffect(() => {
-    fetchFoods();
-  }, []);
+      // Carrega o dicionário e os alimentos ao mesmo tempo
+      async function init() {
+        try {
+          const dictionary = await getDictionary(lang as 'pt' | 'en');
+          setDict(dictionary);
+          await fetchFoods();
+        } catch (error) {
+          console.error('Init error:', error);
+        }
+      }
+      init();
+    }, [lang]);
 
   async function fetchFoods() {
     try {
@@ -30,8 +49,15 @@ export default function ManageFoods() {
     }
   }
 
+  const handleFoodClick = (food: Food) => {
+    setSelectedFood(food);
+    setIsModalOpen(true);
+  };
+
+  const t = dict?.manage || {};
+
   async function handleDelete(id: string) {
-    if (!confirm("Are you sure you want to delete this entry?")) return;
+    if (!confirm(t.confirmDelete || "Are you sure?")) return;
 
     try {
       const res = await fetch(`/api/foods/${id}`, { method: 'DELETE' });
@@ -50,9 +76,9 @@ export default function ManageFoods() {
   return (
     <div className="max-w-4xl mx-auto p-8">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-text-main">Manage Library</h1>
+        <h1 className="text-2xl font-bold text-text-main">{t.title}</h1>
         <Link href="/add-food" className="bg-primary text-white px-4 py-2 rounded-theme text-sm hover:opacity-90 transition">
-          + Add New
+          + {t.addNew}
         </Link>
       </div>
 
@@ -60,9 +86,9 @@ export default function ManageFoods() {
         <table className="w-full text-left">
           <thead className="bg-text-main/5 border-b border-text-main/10">
             <tr>
-              <th className="px-6 py-3 text-text-main/70 font-bold">Food Name</th>
-              <th className="px-6 py-3 text-text-main/70 font-bold">Calories</th>
-              <th className="px-6 py-3 text-right text-text-main/70 font-bold">Actions</th>
+              <th className="px-6 py-3 text-text-main/70 font-bold">{t.name}</th>
+              <th className="px-6 py-3 text-text-main/70 font-bold">{t.calories}</th>
+              <th className="px-6 py-3 text-right text-text-main/70 font-bold">{t.actions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-text-main/10">
@@ -84,27 +110,36 @@ export default function ManageFoods() {
             ) : foods.length === 0 ? (
               <tr>
                 <td colSpan={3} className="px-6 py-10 text-center text-text-main/60">
-                  No foods found in your library.
+                {t.noFoods}
                 </td>
               </tr>
             ) : (
               foods.map((food) => (
                 <tr key={food.id} className="hover:bg-text-main/5 transition-colors bg-card">
-                  <td className="px-6 py-4 font-medium text-text-main">{food.name}</td>
-                  <td className="px-6 py-4 text-text-main/70">{food.energy_kcal || 0} kcal</td>
+                  <td 
+                    className="px-6 py-4 font-medium text-text-main" 
+                    onClick={() => handleFoodClick(food)}
+                  >
+                    {food.name}
+                  </td>
+                  <td 
+                    className="px-6 py-4 text-text-main/70" 
+                    onClick={() => handleFoodClick(food)}
+                  >
+                    {food.energy_kcal || 0} kcal</td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex items-center justify-end gap-4">
                       <Link 
                         href={`/edit/${food.id}`} 
                         className="text-primary hover:opacity-80 hover:underline font-medium transition"
                       >
-                        Edit
+                      {t.edit}
                       </Link>
                       <button 
                         onClick={() => handleDelete(food.id)} 
                         className="text-red-600 hover:text-red-700 hover:underline font-medium transition"
                       >
-                        Delete
+                      {t.delete}
                       </button>
                     </div>
                   </td>
@@ -114,6 +149,14 @@ export default function ManageFoods() {
           </tbody>
         </table>
       </div>
+      {selectedFood && (
+        <FoodProfileModal
+          food={selectedFood}
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          dict={dict}
+        />
+      )}
     </div>
   );
 }

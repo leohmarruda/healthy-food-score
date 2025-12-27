@@ -1,23 +1,25 @@
-import type { Food } from '@/types/food';
+import { Food } from '@/types/food';
 
 interface FoodTableProps {
   foods: Food[];
   onFoodClick: (food: Food) => void;
+  dict: any;
 }
 
-export default function FoodTable({ foods, onFoodClick }: FoodTableProps) {
+export default function FoodTable({ foods, onFoodClick, dict }: FoodTableProps) {
+  console.log("Dicionário na Tabela:", dict)
   return (
     <div className="overflow-hidden border border-text-main/10 rounded-theme bg-card shadow-sm">
       <table className="w-full text-left">
         <thead className="bg-text-main/5 text-text-main/70 uppercase text-xs">
           <tr className="bg-text-main/5 border-b border-text-main/10 text-xs uppercase text-text-main/70 font-bold">
-            <th className="px-4 py-3">Product</th>
-            <th className="px-4 py-3">Brand</th>
-            <th className="px-4 py-3 text-right">Portion</th>
-            <th className="px-4 py-3 text-right">Kcal</th>
-            <th className="px-4 py-3 text-right">Protein</th>
-            <th className="px-4 py-3 text-right">Carbs</th>
-            <th className="px-4 py-3 text-right">Fat</th>
+          <th className="px-4 py-3">{dict?.home?.name}</th>
+          <th className="px-4 py-3">{dict?.home?.brand}</th>
+          <th className="px-4 py-3 text-right">{dict?.home?.portion}</th>
+          <th className="px-4 py-3 text-right">{dict?.home?.kcal}</th>
+          <th className="px-4 py-3 text-right">{dict?.home?.protein}</th>
+          <th className="px-4 py-3 text-right">{dict?.home?.carbs}</th>
+          <th className="px-4 py-3 text-right">{dict?.home?.fat}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-text-main/10 text-text-main">

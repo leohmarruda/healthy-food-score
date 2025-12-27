@@ -1,22 +1,33 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import { processImages } from '@/utils/api';
-import type { Food } from '@/types/food';
-
-const SLOTS = [
-  { id: 'front', label: 'Front of Pack', key: 'front_photo_url' },
-  { id: 'back', label: 'Back of Pack (optional)', key: 'back_photo_url' },
-  { id: 'nutrition', label: 'Nutrition Table', key: 'nutrition_label_url' },
-  { id: 'ingredients', label: 'Ingredients List (if table doesn\'t contain ingredients)', key: 'ingredients_photo_url' },
-];
+import { getDictionary } from '@/lib/get-dictionary';
 
 export default function AddFood() {
   const [files, setFiles] = useState<{ [key: string]: File | null }>({});
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
+  const [dict, setDict] = useState<any>(null);
   const router = useRouter();
+  const params = useParams();
+  const lang = (params?.lang as string) || 'pt';
+
+  useEffect(() => {
+    async function load() {
+      const d = await getDictionary(lang as 'pt' | 'en');
+      setDict(d);
+    }
+    load();
+  }, [lang]);
+
+  const SLOTS = [
+    { id: 'front', label: dict?.addFood?.slotFront || 'Front of Pack', key: 'front_photo_url' },
+    { id: 'back', label: dict?.addFood?.slotBack || 'Back of Pack (optional)', key: 'back_photo_url' },
+    { id: 'nutrition', label: dict?.addFood?.slotNutrition || 'Nutrition Table', key: 'nutrition_label_url' },
+    { id: 'ingredients', label: dict?.addFood?.slotIngredients || 'Ingredients List', key: 'ingredients_photo_url' },
+  ];
 
   const handleFileChange = (slotId: string, file: File) => {
     setFiles(prev => ({ ...prev, [slotId]: file }));
@@ -44,11 +55,11 @@ export default function AddFood() {
       }
   
       // 2. UNIFIED AI PROCESSING
-      setStatus('AI is extracting label data...');
+      setStatus(dict?.addFood?.statusAI || 'AI is extracting data...');
       const aiData = await processImages(Object.values(urls).filter(Boolean) as string[], 'full-scan');
 
       // 3. SAVE TO DATABASE (Original Values)
-      setStatus('Saving to database...');
+      setStatus(dict?.addFood?.statusSave || 'Saving to database...');
       const { error: dbError } = await supabase.from('foods').insert([{
         name: aiData.product_name,
         brand: aiData.brand,
@@ -73,7 +84,7 @@ export default function AddFood() {
       }]);
   
       if (dbError) throw dbError;
-      router.push('/manage');
+      router.push(`/${lang}/manage`);
       router.refresh();
     } catch (error: any) {
       console.error('Submission error:', error);
@@ -83,12 +94,14 @@ export default function AddFood() {
       setStatus('');
     }
   };
+
+  if (!dict) return null;
   
   return (
     <div className="max-w-4xl mx-auto p-8">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-text-main mb-2">Add New Food</h1>
-        <p className="text-text-main/70">Upload specific photos for higher AI accuracy.</p>
+        <h1 className="text-3xl font-bold text-text-main mb-2">{dict.addFood.title}</h1>
+        <p className="text-text-main/70">{dict.addFood.subtitle}</p>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-8">
@@ -115,7 +128,7 @@ export default function AddFood() {
               </div>
             ) : (
               <div className="w-full h-32 flex items-center justify-center bg-text-main/5 rounded-theme mb-3 border border-text-main/10">
-                <span className="text-text-main/40 text-xs">No image selected</span>
+                <span className="text-text-main/40 text-xs">{dict.addFood.noImage}</span>
               </div>
             )}
 
@@ -142,7 +155,7 @@ export default function AddFood() {
           disabled={loading || !files.front || !files.nutrition}
           className="w-full bg-primary text-white py-4 rounded-theme font-bold hover:opacity-90 disabled:bg-text-main/20 disabled:text-text-main/50 disabled:cursor-not-allowed shadow-md transition"
         >
-          {loading ? 'Processing...' : 'Process & Save Data'}
+          {loading ? dict.addFood.btnProcessing : dict.addFood.btnSave}
         </button>
       </form>
     </div>
