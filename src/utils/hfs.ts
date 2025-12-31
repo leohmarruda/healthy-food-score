@@ -7,25 +7,22 @@ interface CheckHFSInputResponse {
 
 export function checkHFSInput(formData: FoodFormData, version: string = 'v2', dict?: any): CheckHFSInputResponse {
   const t = dict?.hfs || {};
+  let success = true;
+  let warnings: string[] = [];
   
   if (!formData.ingredient_list?.length) 
-      return { 
-        success: false,
-        warnings: [
-          t.notCalculated || "HFS not calculated.",
-          t.noIngredients || "No ingredients provided."
-        ]
-      };
+  {
+    success = false;
+    warnings.push(t.noIngredients || "No ingredients provided.");
+  }
   if (!formData.energy_kcal) 
-    return { 
-      success: false,
-      warnings: [
-        t.notCalculated || "HFS not calculated.",
-        t.noCalories || "Calories data not provided."
-      ]
-    };
+  {
+    success = false;
+    warnings.push(t.noCalories || "Calories data not provided.");
+  }
   return { 
-    success: true
+    success: success,
+    warnings: warnings
   };
 }
 

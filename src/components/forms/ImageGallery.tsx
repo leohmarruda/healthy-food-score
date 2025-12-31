@@ -157,19 +157,32 @@ export default function ImageGallery({
         </button>
       </h2>
       <div className="flex bg-text-main/5 p-1 rounded-theme gap-1">
-        {TAB_CONFIG.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-1 text-[10px] uppercase font-bold py-2 rounded-theme transition ${
-              activeTab === tab.id
-                ? 'bg-card text-primary shadow-sm'
-                : 'text-text-main/60 hover:text-text-main'
-            }`}
-          >
-            {dict?.addFood?.[`slot${tab.id.charAt(0).toUpperCase() + tab.id.slice(1)}`] || tab.id}
-          </button>
-        ))}
+        {TAB_CONFIG.map((tab) => {
+          const hasImage = !!images[tab.id];
+          const isActive = activeTab === tab.id;
+          
+          return (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 text-[10px] uppercase font-bold py-2 rounded-theme transition ${
+                isActive
+                  ? 'bg-card shadow-sm'
+                  : ''
+              } ${
+                hasImage
+                  ? isActive
+                    ? 'text-primary'
+                    : 'text-primary hover:text-primary/80'
+                  : isActive
+                    ? 'text-text-main/60'
+                    : 'text-text-main/60 hover:text-text-main/80'
+              }`}
+            >
+              {dict?.addFood?.[`slot${tab.id.charAt(0).toUpperCase() + tab.id.slice(1)}`] || tab.id}
+            </button>
+          );
+        })}
       </div>
       <div className="space-y-4">
         <div 

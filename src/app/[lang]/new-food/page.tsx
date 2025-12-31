@@ -166,9 +166,14 @@ export default function NewFood() {
         <button 
           type="submit"
           disabled={loading || !files.front || !files.nutrition}
-          className="w-full bg-primary text-white py-4 rounded-theme font-bold hover:opacity-90 disabled:bg-text-main/20 disabled:text-text-main/50 disabled:cursor-not-allowed shadow-md transition"
+          className="w-full bg-primary text-white py-4 rounded-theme font-bold hover:opacity-90 disabled:bg-text-main/20 disabled:text-text-main/50 disabled:cursor-not-allowed shadow-md transition relative"
         >
-          {loading ? dict.addFood.btnProcessing : dict.addFood.btnSave}
+          {loading && (
+            <span className="absolute left-4 animate-spin">⏳</span>
+          )}
+          <span className={loading ? 'opacity-70' : ''}>
+            {loading ? dict.addFood.btnProcessing : dict.addFood.btnSave}
+          </span>
         </button>
       </form>
     </div>

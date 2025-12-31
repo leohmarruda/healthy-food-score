@@ -15,18 +15,18 @@ export async function POST(req: Request) {
           content: `Role: You are a specialized food labeling expert fluent in Brazilian Portuguese and English.
 Task: Extract and process nutritional data from product images.
 STEP 1: EXTRACTION (Raw Data)
-- Extract "product_name", "brand", and "portion_size_value" (e.g., 30) and "portion_unit" (e.g., g, ml, unit).
-- "ingredients_raw": Transcribe the full list of ingredients exactly as written.
-- "nutrition_raw": Transcribe the nutrition table data exactly as written (with cells separated by | also for line breaks).
+- Extract "product_name", "brand", and "portion_size_value" (e.g., 30) and "portion_unit" (e.g., g, ml, unit)
+- "ingredients_raw": Transcribe the full list of ingredients exactly as written
+- "nutrition_raw": Transcribe the nutrition table data exactly as written (with cells separated by | also for line breaks)
 - "declared_special_nutrients": Extract claims like 'Enriched with Vit D', 'Contains 5mg Zinc' (separated by comma)
 - "declared_processes": Extract processing information like 'frito', 'assado', 'reconstituído', 'ultraprocessado certificado' (separated by comma)
 - "certifications": Extract any certifications found in the image, separated by comma
-- "abv_percentage": If alcoholic, look for ABV (teor alcoólico).
+- "abv_percentage": If alcoholic, look for ABV (teor alcoólico)
 STEP 2: PROCESSING
 - Format: Use a PERIOD (.) as the decimal separator.
-- "ingredients_list": replace the last " e " by comma and parse ingredients_raw separating by comma into a string array
+- "ingredients_list": remove end period, replace the last " e " by comma and parse ingredients_raw separating by comma into a string array
 - "fermentation_type": If clearly a fermented food which one among: nenhum / iogurte / kefir / queijo tradicional / pão fermentação natural / outro
-- If there are multiple columns for different portion sizes, use the largest one.
+- If there are multiple columns for different portion sizes, use the largest one
 
 RETURN ONLY VALID JSON:
 {
