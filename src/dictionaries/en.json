@@ -15,7 +15,16 @@
       "loadingView": "Loading...",
       "noFoods": "No foods found",
       "searchPlaceholder": "Search foods...",
-      "table": "Table"
+      "table": "Table",
+      "csvHeaders": {
+        "name": "Name",
+        "brand": "Brand",
+        "kcal": "Kcal",
+        "protein": "Protein (g)",
+        "carbs": "Carbs (g)",
+        "fat": "Fat (g)",
+        "score": "Score"
+      }
     },
     "manage": {
       "actions": "Actions",
@@ -133,15 +142,39 @@
     "nutritionLabel": {
       "calories": "Calories",
       "carbs": "Total Carbohydrate",
+      "cholesterol": "Cholesterol",
       "dailyValue": "Daily Value",
       "factsTitle": "Nutrition Facts",
       "fat": "Total Fat",
       "fiber": "Dietary Fiber",
       "footnote": "* Based on a {size} serving. The % Daily Value (DV) tells you how much a nutrient in a serving of food contributes to a daily diet. 2,000 calories a day is used for general nutrition advice.",
+      "includes": "Includes",
+      "insolubleFiber": "Insoluble Fiber",
+      "monounsaturatedFat": "Monounsaturated Fat",
+      "polyols": "Polyols",
+      "polyunsaturatedFat": "Polyunsaturated Fat",
       "protein": "Protein",
-      "saturatedFat": "Saturated fat",
+      "saturatedFat": "Saturated Fat",
       "servingSize": "Serving Size",
-      "sodium": "Sodium"
+      "sodium": "Sodium",
+      "solubleFiber": "Soluble Fiber",
+      "starch": "Starch",
+      "sugarsAdded": "Added Sugars",
+      "sugarsTotal": "Total Sugars",
+      "transFat": "Trans Fat",
+      "vitaminA": "Vitamin A",
+      "vitaminB12": "Vitamin B12",
+      "vitaminB6": "Vitamin B6",
+      "vitaminB9": "Folate (B9)",
+      "vitaminC": "Vitamin C",
+      "vitaminD": "Vitamin D",
+      "vitaminE": "Vitamin E",
+      "vitaminK": "Vitamin K",
+      "calcium": "Calcium",
+      "iron": "Iron",
+      "magnesium": "Magnesium",
+      "potassium": "Potassium",
+      "zinc": "Zinc"
     },
     "confirmModal": {
       "processing": "Processing..."

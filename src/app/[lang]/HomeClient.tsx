@@ -343,7 +343,7 @@ export default function HomeClient({ dict, lang, initialFoodId }: { dict: any, l
             </div>
             
             <button 
-              onClick={() => downloadAsCSV(filteredFoods, 'food-library-export')}
+              onClick={() => downloadAsCSV(filteredFoods, 'food-library-export', dict)}
               className="px-4 py-2 bg-primary text-white rounded-theme hover:opacity-90 transition flex items-center gap-2 text-sm font-medium shadow-md"
             >
               📊 {t.export}

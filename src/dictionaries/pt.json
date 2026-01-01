@@ -15,7 +15,16 @@
       "loadingView": "Carregando...",
       "noFoods": "Nenhum alimento encontrado",
       "searchPlaceholder": "Buscar alimentos...",
-      "table": "Tabela"
+      "table": "Tabela",
+      "csvHeaders": {
+        "name": "Nome",
+        "brand": "Marca",
+        "kcal": "Kcal",
+        "protein": "Proteína (g)",
+        "carbs": "Carboidratos (g)",
+        "fat": "Gorduras (g)",
+        "score": "Score"
+      }
     },
     "manage": {
       "actions": "Ações",
@@ -133,15 +142,39 @@
     "nutritionLabel": {
       "calories": "Calorias",
       "carbs": "Carboidratos Totais",
+      "cholesterol": "Colesterol",
       "dailyValue": "Valor Diário",
       "factsTitle": "Informação Nutricional",
       "fat": "Gorduras Totais",
       "fiber": "Fibra Alimentar",
       "footnote": "* Baseado em uma porção de {size}. Valores diários com base em uma dieta de 2.000 kcal.",
+      "includes": "Inclui",
+      "insolubleFiber": "Fibra Insolúvel",
+      "monounsaturatedFat": "Gorduras Monoinsaturadas",
+      "polyols": "Poliois",
+      "polyunsaturatedFat": "Gorduras Poli-insaturadas",
       "protein": "Proteínas",
       "saturatedFat": "Gorduras Saturadas",
       "servingSize": "Porção de",
-      "sodium": "Sódio"
+      "sodium": "Sódio",
+      "solubleFiber": "Fibra Solúvel",
+      "starch": "Amido",
+      "sugarsAdded": "Açúcares Adicionados",
+      "sugarsTotal": "Açúcares Totais",
+      "transFat": "Gorduras Trans",
+      "vitaminA": "Vitamina A",
+      "vitaminB12": "Vitamina B12",
+      "vitaminB6": "Vitamina B6",
+      "vitaminB9": "Ácido Fólico (B9)",
+      "vitaminC": "Vitamina C",
+      "vitaminD": "Vitamina D",
+      "vitaminE": "Vitamina E",
+      "vitaminK": "Vitamina K",
+      "calcium": "Cálcio",
+      "iron": "Ferro",
+      "magnesium": "Magnésio",
+      "potassium": "Potássio",
+      "zinc": "Zinco"
     },
     "confirmModal": {
       "processing": "Processando..."

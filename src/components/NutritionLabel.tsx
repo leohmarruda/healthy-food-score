@@ -1,4 +1,5 @@
 'use client';
+import { useParams } from 'next/navigation';
 import type { Food, FoodFormData } from '@/types/food';
 
 interface NutritionLabelProps {
@@ -18,6 +19,10 @@ export default function NutritionLabel({
 }: NutritionLabelProps) {
   if (!data || !dict) return null;
 
+  const params = useParams();
+  const lang = (params?.lang as string) || 'pt';
+  const isPortuguese = lang === 'pt';
+  
   const t = dict?.components?.nutritionLabel || {};
 
   // Extract nutrition_parsed data with fallback to flat fields
@@ -88,13 +93,39 @@ export default function NutritionLabel({
   const vitaminB6 = vitamins.vitamin_b6_mg;
   const vitaminB9 = vitamins.vitamin_b9_mcg;
 
+  // Render a nutrition field row
+  const renderField = (
+    label: string,
+    value: number | null | undefined,
+    unit: string,
+    isBold: boolean = false,
+    indent: number = 0,
+    dailyValue?: number,
+    formatFn: (val: number | null | undefined) => string = formatValue
+  ) => {
+    if (value == null || value === 0) return null;
+    const formattedValue = formatFn(value);
+    const percentage = dailyValue ? calculatePercentage(value, dailyValue) : null;
+    const indentClass = indent === 0 ? '' : indent === 1 ? 'pl-4' : indent === 2 ? 'pl-6' : '';
+    const textSizeClass = indent === 0 ? 'text-sm' : indent === 1 ? 'text-sm' : 'text-xs';
+    
+    return (
+      <div className={`border-b border-black py-1 ${indentClass} flex justify-between ${textSizeClass}`}>
+        <span>
+          {isBold ? <span className="font-bold">{label}</span> : label} {formattedValue}{unit}
+        </span>
+        <span className="font-bold">{percentage !== null ? `${percentage}%` : ''}</span>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-white p-4 border-2 border-black max-w-[300px] font-sans text-black shadow-md">
       <h2 className="text-3xl font-black leading-tight border-b-8 border-black">
         {t.factsTitle || 'Nutrition Facts'}
       </h2>
       <div className="border-b-4 border-black py-1 font-bold flex justify-between items-center">
-      <span>{t.servingSize || 'Serving size'}</span>
+        <span>{t.servingSize || 'Serving size'}</span>
         <span className="flex items-center gap-1">
           {usePortion 
             ? `${Math.round(servingSize * multiplier)}${servingUnit}` 
@@ -127,218 +158,128 @@ export default function NutritionLabel({
         </span>
       </div>
       
-      <div className="border-b-8 border-black py-1 flex justify-between items-end">
-        <span className="text-2xl font-black">{t.calories || 'Calories'}</span>
-        <span className="text-4xl font-black">{formatCalories(energyKcal)}</span>
+      {/* Energy - Show kcal and kJ for Portuguese (ANVISA), only kcal for English (FDA) */}
+      <div className="border-b-8 border-black py-1 flex justify-between items-center">
+        <span className="font-bold">{t.calories || 'Calories'}</span>
+        <span className="font-bold">
+          {isPortuguese ? (
+            <>
+              {formatCalories(energyKcal)} kcal ({Math.round(energyKcal * totalRatio * 4.184)} kJ)
+            </>
+          ) : (
+            formatCalories(energyKcal)
+          )}
+        </span>
       </div>
   
       <div className="text-sm border-b border-black py-1 text-right font-bold">
         % {t.dailyValue || 'Daily Value'}*
       </div>
-  
-      {/* Fats Section */}
-      <div className="border-b border-black py-1 flex justify-between">
-        <span><span className="font-bold">{t.fat || 'Total Fat'}</span> {formatValue(totalFat)}g</span>
-        <span className="font-bold">{calculatePercentage(totalFat, 78)}%</span>
-      </div>
 
-      {saturatedFat > 0 && (
-        <div className="border-b border-black py-1 pl-4 flex justify-between text-sm">
-          <span>{t.saturatedFat || 'Saturated Fat'} {formatValue(saturatedFat)}g</span>
-          <span className="font-bold">{calculatePercentage(saturatedFat, 20)}%</span>
-        </div>
-      )}
-
-      {transFat > 0 && (
-        <div className="border-b border-black py-1 pl-4 flex justify-between text-sm">
-          <span>Trans Fat {formatValue(transFat)}g</span>
-          <span className="font-bold"></span>
-        </div>
-      )}
-
-      {monounsaturatedFat != null && monounsaturatedFat > 0 && (
-        <div className="border-b border-black py-1 pl-4 flex justify-between text-sm">
-          <span>Monounsaturated Fat {formatValue(monounsaturatedFat)}g</span>
-          <span className="font-bold"></span>
-        </div>
-      )}
-
-      {polyunsaturatedFat != null && polyunsaturatedFat > 0 && (
-        <div className="border-b border-black py-1 pl-4 flex justify-between text-sm">
-          <span>Polyunsaturated Fat {formatValue(polyunsaturatedFat)}g</span>
-          <span className="font-bold"></span>
-        </div>
-      )}
-
-      {cholesterol != null && cholesterol > 0 && (
-        <div className="border-b border-black py-1 pl-4 flex justify-between text-sm">
-          <span>Cholesterol {Math.round(cholesterol * totalRatio)}mg</span>
-          <span className="font-bold">{calculatePercentage(cholesterol, 300)}%</span>
-        </div>
-      )}
-
-      {/* Sodium */}
-      {sodium > 0 && (
-        <div className="border-b border-black py-1 flex justify-between">
-          <span>
-            <span className="font-bold">{t.sodium || 'Sodium'}</span> {Math.round(sodium * totalRatio)}mg
-          </span>
-          <span className="font-bold">{calculatePercentage(sodium, 2300)}%</span>
-        </div>
-      )}
-
-      {/* Carbohydrates Section */}
-      {totalCarbs > 0 && (
-        <div className="border-b border-black py-1 flex justify-between">
-          <span><span className="font-bold">{t.carbs || 'Total Carbohydrate'}</span> {formatValue(totalCarbs)}g</span>
-          <span className="font-bold">{calculatePercentage(totalCarbs, 275)}%</span>
-        </div>
-      )}
-
-      {totalFiber > 0 && (
-        <div className="border-b border-black py-1 pl-4 flex justify-between text-sm">
-          <span>{t.fiber || 'Dietary Fiber'} {formatValue(totalFiber)}g</span>
-          <span className="font-bold">{calculatePercentage(totalFiber, 28)}%</span>
-        </div>
-      )}
-
-      {solubleFiber != null && solubleFiber > 0 && (
-        <div className="border-b border-black py-1 pl-6 flex justify-between text-xs">
-          <span>Soluble Fiber {formatValue(solubleFiber)}g</span>
-          <span className="font-bold"></span>
-        </div>
-      )}
-
-      {insolubleFiber != null && insolubleFiber > 0 && (
-        <div className="border-b border-black py-1 pl-6 flex justify-between text-xs">
-          <span>Insoluble Fiber {formatValue(insolubleFiber)}g</span>
-          <span className="font-bold"></span>
-        </div>
-      )}
-
-      {sugarsTotal != null && sugarsTotal > 0 && (
-        <div className="border-b border-black py-1 pl-4 flex justify-between text-sm">
-          <span>Total Sugars {formatValue(sugarsTotal)}g</span>
-          <span className="font-bold"></span>
-        </div>
-      )}
-
-      {sugarsAdded != null && sugarsAdded > 0 && (
-        <div className="border-b border-black py-1 pl-6 flex justify-between text-xs">
-          <span>Includes {formatValue(sugarsAdded)}g Added Sugars</span>
-          <span className="font-bold">{calculatePercentage(sugarsAdded, 50)}%</span>
-        </div>
-      )}
-
-      {polyols != null && polyols > 0 && (
-        <div className="border-b border-black py-1 pl-4 flex justify-between text-sm">
-          <span>Polyols {formatValue(polyols)}g</span>
-          <span className="font-bold"></span>
-        </div>
-      )}
-
-      {starch != null && starch > 0 && (
-        <div className="border-b border-black py-1 pl-4 flex justify-between text-sm">
-          <span>Starch {formatValue(starch)}g</span>
-          <span className="font-bold"></span>
-        </div>
-      )}
-
-      {/* Protein */}
-      {protein > 0 && (
-        <div className="border-b-4 border-black py-1 flex justify-between">
-          <span><span className="font-bold">{t.protein || 'Protein'}</span> {formatValue(protein)}g</span>
-          <span></span>
-        </div>
-      )}
-
-      {/* Minerals Section */}
-      {(calcium != null || iron != null || potassium != null || magnesium != null || zinc != null) && (
+      {isPortuguese ? (
+        // ANVISA Order (Brazil)
         <>
-          {calcium != null && calcium > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Calcium {Math.round(calcium * totalRatio)}mg</span>
-              <span className="font-bold">{calculatePercentage(calcium, 1300)}%</span>
+          {/* 1. Carboidratos */}
+          {totalCarbs > 0 && renderField(t.carbs || 'Carboidratos Totais', totalCarbs, 'g', true, 0, 275)}
+          
+          {/* 2. Açúcares totais */}
+          {sugarsTotal != null && sugarsTotal > 0 && renderField(t.sugarsTotal || 'Açúcares Totais', sugarsTotal, 'g', false, 1)}
+          
+          {/* 3. Açúcares adicionados */}
+          {sugarsAdded != null && sugarsAdded > 0 && renderField(`${t.includes || 'Inclui'} ${formatValue(sugarsAdded)}g ${t.sugarsAdded || 'Açúcares Adicionados'}`, sugarsAdded, '', false, 1, 50)}
+          
+          {/* 4. Proteínas */}
+          {protein > 0 && (
+            <div className="border-b-4 border-black py-1 flex justify-between">
+              <span><span className="font-bold">{t.protein || 'Proteínas'}</span> {formatValue(protein)}g</span>
+              <span></span>
             </div>
           )}
-          {iron != null && iron > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Iron {formatValue(iron)}mg</span>
-              <span className="font-bold">{calculatePercentage(iron, 18)}%</span>
-            </div>
-          )}
-          {potassium != null && potassium > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Potassium {Math.round(potassium * totalRatio)}mg</span>
-              <span className="font-bold">{calculatePercentage(potassium, 4700)}%</span>
-            </div>
-          )}
-          {magnesium != null && magnesium > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Magnesium {formatValue(magnesium)}mg</span>
-              <span className="font-bold">{calculatePercentage(magnesium, 420)}%</span>
-            </div>
-          )}
-          {zinc != null && zinc > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Zinc {formatValue(zinc)}mg</span>
-              <span className="font-bold">{calculatePercentage(zinc, 11)}%</span>
-            </div>
+          
+          {/* 5. Gorduras Totais */}
+          {totalFat > 0 && renderField(t.fat || 'Gorduras Totais', totalFat, 'g', true, 0, 78)}
+          
+          {/* 6. Gorduras Saturadas */}
+          {saturatedFat > 0 && renderField(t.saturatedFat || 'Gorduras Saturadas', saturatedFat, 'g', false, 1, 20)}
+          
+          {/* 7. Gorduras Trans */}
+          {transFat > 0 && renderField(t.transFat || 'Gorduras Trans', transFat, 'g', false, 1)}
+          
+          {/* 8. Fibra Alimentar */}
+          {totalFiber > 0 && renderField(t.fiber || 'Fibra Alimentar', totalFiber, 'g', false, 0, 28)}
+          
+          {/* 9. Sódio */}
+          {sodium > 0 && renderField(t.sodium || 'Sódio', sodium, 'mg', true, 0, 2300, (val) => Math.round((val || 0) * totalRatio).toString())}
+          
+          {/* 10. Vitaminas e Minerais (opcional, apenas se presentes) */}
+          {(calcium != null || iron != null || potassium != null || magnesium != null || zinc != null || 
+            vitaminA != null || vitaminC != null || vitaminD != null || vitaminE != null || vitaminK != null || 
+            vitaminB12 != null || vitaminB6 != null || vitaminB9 != null) && (
+            <>
+              {calcium != null && calcium > 0 && renderField(t.calcium || 'Cálcio', calcium, 'mg', false, 0, 1300, (val) => Math.round((val || 0) * totalRatio).toString())}
+              {iron != null && iron > 0 && renderField(t.iron || 'Ferro', iron, 'mg', false, 0, 18)}
+              {potassium != null && potassium > 0 && renderField(t.potassium || 'Potássio', potassium, 'mg', false, 0, 4700, (val) => Math.round((val || 0) * totalRatio).toString())}
+              {magnesium != null && magnesium > 0 && renderField(t.magnesium || 'Magnésio', magnesium, 'mg', false, 0, 420)}
+              {zinc != null && zinc > 0 && renderField(t.zinc || 'Zinco', zinc, 'mg', false, 0, 11)}
+              {vitaminA != null && vitaminA > 0 && renderField(t.vitaminA || 'Vitamina A', vitaminA, 'mcg', false, 0, 900, (val) => Math.round((val || 0) * totalRatio).toString())}
+              {vitaminC != null && vitaminC > 0 && renderField(t.vitaminC || 'Vitamina C', vitaminC, 'mg', false, 0, 90)}
+              {vitaminD != null && vitaminD > 0 && renderField(t.vitaminD || 'Vitamina D', vitaminD, 'mcg', false, 0, 20, (val) => Math.round((val || 0) * totalRatio).toString())}
+              {vitaminE != null && vitaminE > 0 && renderField(t.vitaminE || 'Vitamina E', vitaminE, 'mg', false, 0, 15)}
+              {vitaminK != null && vitaminK > 0 && renderField(t.vitaminK || 'Vitamina K', vitaminK, 'mcg', false, 0, 120, (val) => Math.round((val || 0) * totalRatio).toString())}
+              {vitaminB12 != null && vitaminB12 > 0 && renderField(t.vitaminB12 || 'Vitamina B12', vitaminB12, 'mcg', false, 0, 2.4, (val) => Math.round((val || 0) * totalRatio).toString())}
+              {vitaminB6 != null && vitaminB6 > 0 && renderField(t.vitaminB6 || 'Vitamina B6', vitaminB6, 'mg', false, 0, 1.7)}
+              {vitaminB9 != null && vitaminB9 > 0 && renderField(t.vitaminB9 || 'Ácido Fólico (B9)', vitaminB9, 'mcg', false, 0, 400, (val) => Math.round((val || 0) * totalRatio).toString())}
+            </>
           )}
         </>
-      )}
-
-      {/* Vitamins Section */}
-      {(vitaminA != null || vitaminC != null || vitaminD != null || vitaminE != null || vitaminK != null || vitaminB12 != null || vitaminB6 != null || vitaminB9 != null) && (
+      ) : (
+        // FDA Order (USA)
         <>
-          {vitaminA != null && vitaminA > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Vitamin A {Math.round(vitaminA * totalRatio)}mcg</span>
-              <span className="font-bold">{calculatePercentage(vitaminA, 900)}%</span>
+          {/* Fats Section */}
+          {totalFat > 0 && renderField(t.fat || 'Total Fat', totalFat, 'g', true, 0, 78)}
+          {saturatedFat > 0 && renderField(t.saturatedFat || 'Saturated Fat', saturatedFat, 'g', false, 1, 20)}
+          {transFat > 0 && renderField(t.transFat || 'Trans Fat', transFat, 'g', false, 1)}
+          {monounsaturatedFat != null && monounsaturatedFat > 0 && renderField(t.monounsaturatedFat || 'Monounsaturated Fat', monounsaturatedFat, 'g', false, 1)}
+          {polyunsaturatedFat != null && polyunsaturatedFat > 0 && renderField(t.polyunsaturatedFat || 'Polyunsaturated Fat', polyunsaturatedFat, 'g', false, 1)}
+          {cholesterol != null && cholesterol > 0 && renderField(t.cholesterol || 'Cholesterol', cholesterol, 'mg', false, 1, 300, (val) => Math.round((val || 0) * totalRatio).toString())}
+          
+          {/* Sodium */}
+          {sodium > 0 && renderField(t.sodium || 'Sodium', sodium, 'mg', true, 0, 2300, (val) => Math.round((val || 0) * totalRatio).toString())}
+          
+          {/* Carbohydrates Section */}
+          {totalCarbs > 0 && renderField(t.carbs || 'Total Carbohydrate', totalCarbs, 'g', true, 0, 275)}
+          {totalFiber > 0 && renderField(t.fiber || 'Dietary Fiber', totalFiber, 'g', false, 1, 28)}
+          {solubleFiber != null && solubleFiber > 0 && renderField(t.solubleFiber || 'Soluble Fiber', solubleFiber, 'g', false, 2)}
+          {insolubleFiber != null && insolubleFiber > 0 && renderField(t.insolubleFiber || 'Insoluble Fiber', insolubleFiber, 'g', false, 2)}
+          {sugarsTotal != null && sugarsTotal > 0 && renderField(t.sugarsTotal || 'Total Sugars', sugarsTotal, 'g', false, 1)}
+          {sugarsAdded != null && sugarsAdded > 0 && renderField(`${t.includes || 'Includes'} ${formatValue(sugarsAdded)}g ${t.sugarsAdded || 'Added Sugars'}`, sugarsAdded, '', false, 2, 50)}
+          {polyols != null && polyols > 0 && renderField(t.polyols || 'Polyols', polyols, 'g', false, 1)}
+          {starch != null && starch > 0 && renderField(t.starch || 'Starch', starch, 'g', false, 1)}
+          
+          {/* Protein */}
+          {protein > 0 && (
+            <div className="border-b-4 border-black py-1 flex justify-between">
+              <span><span className="font-bold">{t.protein || 'Protein'}</span> {formatValue(protein)}g</span>
+              <span></span>
             </div>
           )}
-          {vitaminC != null && vitaminC > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Vitamin C {formatValue(vitaminC)}mg</span>
-              <span className="font-bold">{calculatePercentage(vitaminC, 90)}%</span>
-            </div>
-          )}
-          {vitaminD != null && vitaminD > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Vitamin D {Math.round(vitaminD * totalRatio)}mcg</span>
-              <span className="font-bold">{calculatePercentage(vitaminD, 20)}%</span>
-            </div>
-          )}
-          {vitaminE != null && vitaminE > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Vitamin E {formatValue(vitaminE)}mg</span>
-              <span className="font-bold">{calculatePercentage(vitaminE, 15)}%</span>
-            </div>
-          )}
-          {vitaminK != null && vitaminK > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Vitamin K {Math.round(vitaminK * totalRatio)}mcg</span>
-              <span className="font-bold">{calculatePercentage(vitaminK, 120)}%</span>
-            </div>
-          )}
-          {vitaminB12 != null && vitaminB12 > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Vitamin B12 {Math.round(vitaminB12 * totalRatio)}mcg</span>
-              <span className="font-bold">{calculatePercentage(vitaminB12, 2.4)}%</span>
-            </div>
-          )}
-          {vitaminB6 != null && vitaminB6 > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Vitamin B6 {formatValue(vitaminB6)}mg</span>
-              <span className="font-bold">{calculatePercentage(vitaminB6, 1.7)}%</span>
-            </div>
-          )}
-          {vitaminB9 != null && vitaminB9 > 0 && (
-            <div className="border-b border-black py-1 flex justify-between text-sm">
-              <span>Folate (B9) {Math.round(vitaminB9 * totalRatio)}mcg</span>
-              <span className="font-bold">{calculatePercentage(vitaminB9, 400)}%</span>
-            </div>
-          )}
+          
+          {/* Minerals Section */}
+          {calcium != null && calcium > 0 && renderField(t.calcium || 'Calcium', calcium, 'mg', false, 0, 1300, (val) => Math.round((val || 0) * totalRatio).toString())}
+          {iron != null && iron > 0 && renderField(t.iron || 'Iron', iron, 'mg', false, 0, 18)}
+          {potassium != null && potassium > 0 && renderField(t.potassium || 'Potassium', potassium, 'mg', false, 0, 4700, (val) => Math.round((val || 0) * totalRatio).toString())}
+          {magnesium != null && magnesium > 0 && renderField(t.magnesium || 'Magnesium', magnesium, 'mg', false, 0, 420)}
+          {zinc != null && zinc > 0 && renderField(t.zinc || 'Zinc', zinc, 'mg', false, 0, 11)}
+          
+          {/* Vitamins Section */}
+          {vitaminA != null && vitaminA > 0 && renderField(t.vitaminA || 'Vitamin A', vitaminA, 'mcg', false, 0, 900, (val) => Math.round((val || 0) * totalRatio).toString())}
+          {vitaminC != null && vitaminC > 0 && renderField(t.vitaminC || 'Vitamin C', vitaminC, 'mg', false, 0, 90)}
+          {vitaminD != null && vitaminD > 0 && renderField(t.vitaminD || 'Vitamin D', vitaminD, 'mcg', false, 0, 20, (val) => Math.round((val || 0) * totalRatio).toString())}
+          {vitaminE != null && vitaminE > 0 && renderField(t.vitaminE || 'Vitamin E', vitaminE, 'mg', false, 0, 15)}
+          {vitaminK != null && vitaminK > 0 && renderField(t.vitaminK || 'Vitamin K', vitaminK, 'mcg', false, 0, 120, (val) => Math.round((val || 0) * totalRatio).toString())}
+          {vitaminB12 != null && vitaminB12 > 0 && renderField(t.vitaminB12 || 'Vitamin B12', vitaminB12, 'mcg', false, 0, 2.4, (val) => Math.round((val || 0) * totalRatio).toString())}
+          {vitaminB6 != null && vitaminB6 > 0 && renderField(t.vitaminB6 || 'Vitamin B6', vitaminB6, 'mg', false, 0, 1.7)}
+          {vitaminB9 != null && vitaminB9 > 0 && renderField(t.vitaminB9 || 'Folate (B9)', vitaminB9, 'mcg', false, 0, 400, (val) => Math.round((val || 0) * totalRatio).toString())}
         </>
       )}
 

@@ -1,8 +1,17 @@
-export const downloadAsCSV = (data: any[], fileName: string) => {
+export const downloadAsCSV = (data: any[], fileName: string, dict?: any) => {
     if (data.length === 0) return;
   
-    // Define headers
-    const headers = ["Name", "Brand", "Kcal", "Protein (g)", "Carbs (g)", "Fat (g)", "Score"];
+    // Get translated headers from dictionary or use defaults
+    const csvHeaders = dict?.pages?.home?.csvHeaders || {};
+    const headers = [
+      csvHeaders.name || "Name",
+      csvHeaders.brand || "Brand",
+      csvHeaders.kcal || "Kcal",
+      csvHeaders.protein || "Protein (g)",
+      csvHeaders.carbs || "Carbs (g)",
+      csvHeaders.fat || "Fat (g)",
+      csvHeaders.score || "Score"
+    ];
     
     // Map data to rows, using semicolon as delimiter (Brazilian Excel standard)
     const delimiter = ";";

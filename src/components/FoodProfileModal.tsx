@@ -155,8 +155,8 @@ export default function FoodProfileModal({ food, isOpen, onClose, dict }: FoodPr
           <div className="space-y-3 pt-8">
             <div className="mt-6 pt-4 border-t border-text-main/10 flex items-center justify-between">
               <div className="text-[10px] text-text-main/50 italic">
-                {dict?.pages?.home?.lastUpdate || 'Last update'}: {food.created_at 
-                  ? new Date(food.created_at).toLocaleDateString(lang === 'pt' ? 'pt-BR' : 'en-US') 
+                {dict?.pages?.edit?.lastUpdatedLabel || dict?.pages?.home?.lastUpdate || 'Last update'}: {(food.last_update || food.created_at)
+                  ? new Date(food.last_update || food.created_at || '').toLocaleDateString(lang === 'pt' ? 'pt-BR' : 'en-US') 
                   : (t.manualEntry || 'Manual Entry')}
               </div>
               <Link
