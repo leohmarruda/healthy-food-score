@@ -26,20 +26,22 @@ export function useHFSPreparation() {
     return initialData;
   }, []);
 
-  const prepareForV2 = useCallback((formData: FoodFormData) => {
+  const prepareForV2 = useCallback((formData: FoodFormData): HFSPreparationResult => {
     setPreparationData({
+      scores: undefined,
       servingSize: formData.serving_size_value,
       servingUnit: formData.serving_size_unit,
       density: formData.density,
     });
     return {
+      scores: undefined,
       servingSize: formData.serving_size_value,
       servingUnit: formData.serving_size_unit,
       density: formData.density,
     };
   }, []);
 
-  const prepare = useCallback(async (formData: FoodFormData, version: string) => {
+  const prepare = useCallback(async (formData: FoodFormData, version: string): Promise<HFSPreparationResult> => {
     if (version === 'v1') {
       return await prepareForV1(formData);
     } else {

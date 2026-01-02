@@ -228,8 +228,29 @@ export default function HomeClient({ dict, lang, initialFoodId }: { dict: any, l
 
     // Table view: use sortConfig
     return [...filtered].sort((a, b) => {
-      const aValue = a[sortConfig.key] ?? 0;
-      const bValue = b[sortConfig.key] ?? 0;
+      let aValue: any;
+      let bValue: any;
+      
+      if (sortConfig.key === 'hfs') {
+        // Extract HFS score from hfs_score JSON
+        const getHFSScore = (food: Food): number => {
+          if (!food.hfs_score || typeof food.hfs_score !== 'object') return -1;
+          // Check v2 first (highest version)
+          if (food.hfs_score.v2?.hfs_score !== undefined) {
+            return food.hfs_score.v2.hfs_score;
+          }
+          // Fallback to v1 if v2 doesn't exist
+          if (food.hfs_score.v1?.HFSv1 !== undefined) {
+            return food.hfs_score.v1.HFSv1;
+          }
+          return -1;
+        };
+        aValue = getHFSScore(a);
+        bValue = getHFSScore(b);
+      } else {
+        aValue = a[sortConfig.key as keyof Food] ?? 0;
+        bValue = b[sortConfig.key as keyof Food] ?? 0;
+      }
 
       if (aValue < bValue) return sortConfig.order === 'asc' ? -1 : 1;
       if (aValue > bValue) return sortConfig.order === 'asc' ? 1 : -1;

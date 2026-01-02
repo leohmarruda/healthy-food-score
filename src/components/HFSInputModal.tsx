@@ -17,6 +17,7 @@ interface HFSInputModalProps {
     s6?: number; // Sódio (mg)
     s7?: number; // Grau de processamento (NOVA)
     s8?: number; // Aditivos artificiais (lista)
+    density?: number; // Density (g/ml)
   };
   formData?: {
     ingredients_list?: string[];
@@ -31,6 +32,8 @@ interface HFSInputModalProps {
     declared_processes?: string;
     declared_special_nutrients?: string;
     serving_size_value?: number;
+    serving_size_unit?: string;
+    density?: number;
   };
   servingSize?: number;
   servingUnit?: string;
@@ -70,7 +73,12 @@ export default function HFSInputModal({
     
     if (isV2) {
       const nutrientFields = ['energy_kcal', 'carbs_total_g', 'protein_g', 'sodium_mg', 'fiber_g', 'saturated_fat_g', 'trans_fat_g'];
-      const converted = convertNutrientsTo100g(initialFormData || {}, nutrientFields, conversionParams);
+      // Extract only numeric fields for conversion
+      const numericData: Record<string, number | null | undefined> = {};
+      nutrientFields.forEach(field => {
+        numericData[field] = initialFormData?.[field as keyof typeof initialFormData] as number | undefined;
+      });
+      const converted = convertNutrientsTo100g(numericData, nutrientFields, conversionParams);
       setFormData({ ...initialFormData, ...converted });
     } else {
       const convertedScores: any = { ...initialScores };
@@ -186,7 +194,12 @@ export default function HFSInputModal({
   const handleConfirm = () => {
     if (isV2) {
       const nutrientFields = ['energy_kcal', 'carbs_total_g', 'protein_g', 'sodium_mg', 'fiber_g', 'saturated_fat_g', 'trans_fat_g'];
-      const converted = convertNutrientsFrom100g(formData, nutrientFields, conversionParams);
+      // Extract only numeric fields for conversion
+      const numericData: Record<string, number | null | undefined> = {};
+      nutrientFields.forEach(field => {
+        numericData[field] = formData[field as keyof typeof formData] as number | undefined;
+      });
+      const converted = convertNutrientsFrom100g(numericData, nutrientFields, conversionParams); 
       const result = { ...formData, ...converted };
       result.abv_percentage = formData.abv_percentage ?? 0;
       onConfirm(result);
@@ -297,8 +310,10 @@ export default function HFSInputModal({
                     : (presumedZero && !isFocused ? '' : String(rawValue || ''));
                   
                   // Get default value configuration
+                  // Convert array to string for getDefaultValueConfig (it expects string | number | undefined)
+                  const configValue = Array.isArray(rawValue) ? rawValue.join(', ') : rawValue;
                   const defaultConfig = getDefaultValueConfig({
-                    value: rawValue,
+                    value: configValue,
                     placeholder: isDeclaredField && isEmpty ? noneText : (presumedZero ? '0' : undefined),
                     isFocused,
                     dict
@@ -370,8 +385,10 @@ export default function HFSInputModal({
                   const displayValue = presumedZero && !isFocused ? '' : String(value || '');
                   
                   // Get default value configuration
+                  // Convert array to string for getDefaultValueConfig (it expects string | number | undefined)
+                  const configValue = Array.isArray(value) ? value.join(', ') : value;
                   const defaultConfig = getDefaultValueConfig({
-                    value,
+                    value: configValue,
                     placeholder: presumedZero ? '0' : undefined,
                     isFocused,
                     dict
@@ -442,8 +459,10 @@ export default function HFSInputModal({
                 : (showNone ? '' : (presumedZero && !isFocused ? '' : String(rawValue || '')));
               
               // Get default value configuration
+              // Convert array to string for getDefaultValueConfig (it expects string | number | undefined)
+              const configValue = isDeclaredField && isEmpty ? '' : (Array.isArray(rawValue) ? rawValue.join(', ') : rawValue);
               const defaultConfig = getDefaultValueConfig({
-                value: isDeclaredField && isEmpty ? '' : rawValue,
+                value: configValue,
                 placeholder,
                 isFocused,
                 dict
