@@ -5,7 +5,7 @@ import type { Food, FoodFormData } from '@/types/food';
  */
 export function cleanFoodData(data: any): FoodFormData {
   // Fields that should remain as null/undefined when null (numeric optional fields)
-  const optionalNumericFields = ['price', 'abv_percentage', 'density'];
+  const optionalNumericFields = ['abv_percentage', 'density'];
   
   return Object.keys(data).reduce((acc: any, key) => {
     if (key === 'ingredients_list') {
@@ -13,6 +13,9 @@ export function cleanFoodData(data: any): FoodFormData {
     } else if (key === 'density') {
       // Default density to 1.0 if null or undefined
       acc[key] = data[key] ?? 1.0;
+    } else if (key === 'price') {
+      // Default price to 0.00 if null or undefined
+      acc[key] = data[key] ?? 0.00;
     } else if (optionalNumericFields.includes(key)) {
       // Keep null/undefined for other optional numeric fields
       acc[key] = data[key] ?? undefined;
@@ -22,6 +25,9 @@ export function cleanFoodData(data: any): FoodFormData {
     } else if (key === 'location') {
       // Default location to "Brasil" if empty or null
       acc[key] = data[key] && data[key].trim() ? data[key] : 'Brasil';
+    } else if (key === 'brand') {
+      // Default brand to "(sem marca)" if empty or null
+      acc[key] = data[key] && data[key].trim() ? data[key] : '(sem marca)';
     } else {
       acc[key] = data[key] === null ? "" : data[key];
     }

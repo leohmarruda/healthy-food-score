@@ -24,7 +24,7 @@ export default function FoodCard({ food, dict }: { food: Food, dict: any }) {
           <h3 className="font-bold text-lg capitalize text-text-main truncate">
             {food.product_name || 'Unknown Food'}
           </h3>
-          <HFSLabel food={food} variant="card" />
+          <HFSLabel food={food} variant="card" dict={dict} />
         </div>
         {(food.brand || food.location) && (
           <div className="flex items-center gap-2 mt-2">

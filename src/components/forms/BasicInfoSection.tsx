@@ -37,8 +37,9 @@ export default function BasicInfoSection({
         <FormField
           label={dict?.pages?.edit?.labelBrand || 'Brand*'}
           name="brand"
-          value={formData.brand ?? ''}
-          onChange={(value) => onChange('brand', value)}
+          value={formData.brand && formData.brand !== '(sem marca)' ? formData.brand : ''}
+          onChange={(value) => onChange('brand', value || '(sem marca)')}
+          placeholder={formData.brand && formData.brand !== '(sem marca)' ? undefined : (dict?.pages?.edit?.noBrand || '(sem marca)')}
           locked={isLocked?.('brand')}
           onToggleLock={onToggleLock ? () => onToggleLock('brand') : undefined}
           dict={dict}
@@ -58,8 +59,10 @@ export default function BasicInfoSection({
           label={dict?.pages?.edit?.labelPrice || 'Price'}
           name="price"
           value={formData.price || ''}
-          onChange={(value) => onChange('price', value)}
+          onChange={(value) => onChange('price', value || '0.00')}
           step="0.01"
+          defaultValue={0.00}
+          showDefaultAsItalic={true}
           locked={isLocked?.('price')}
           onToggleLock={onToggleLock ? () => onToggleLock('price') : undefined}
           onFieldError={onFieldError}

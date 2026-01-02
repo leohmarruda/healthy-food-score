@@ -78,34 +78,33 @@ export default function FoodProfileModal({ food, isOpen, onClose, dict }: FoodPr
 
             {/* HFS Score - Enhanced */}
             <div className="p-5 bg-gradient-to-br from-background to-background/50 rounded-theme border-2 border-text-main/10 shadow-sm">
-              <div className="flex justify-between items-center mb-3">
-                <div className="flex items-center gap-2">
-                  <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <span className="text-sm font-bold text-text-main uppercase">{t.hfsScore || 'HFS Score'}</span>
-                </div>
-                <HFSLabel food={food} variant="card" className="text-base" />
+              <div className="flex items-center gap-2 mb-3">
+                <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span className="text-sm font-bold text-text-main uppercase">{t.hfsScore || 'HFS Score'}</span>
               </div>
-              <div className="w-full bg-text-main/10 h-4 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full transition-all duration-700 ${
-                    food.hfs_score?.v1?.HFSv1 >= 7 ? 'bg-green-500' : 
-                    food.hfs_score?.v1?.HFSv1 >= 4 ? 'bg-orange-400' : 
-                    food.hfs_score?.v1?.HFSv1 >= 0 ? 'bg-red-500' : 'bg-gray-400'
-                  }`}
-                  style={{ width: `${food.hfs_score?.v1?.HFSv1 >= 0 ? (food.hfs_score.v1.HFSv1 * 10) : 0}%` }}
-                />
+              <div className="flex flex-wrap gap-2">
+                {food.hfs_score?.v2?.hfs_score !== undefined && (
+                  <HFSLabel 
+                    food={{ ...food, hfs_score: { v2: food.hfs_score.v2 } }} 
+                    variant="card" 
+                    className="text-base" 
+                    dict={dict} 
+                  />
+                )}
+                {food.hfs_score?.v1?.HFSv1 !== undefined && (
+                  <HFSLabel 
+                    food={{ ...food, hfs_score: { v1: food.hfs_score.v1 } }} 
+                    variant="card" 
+                    className="text-base" 
+                    dict={dict} 
+                  />
+                )}
+                {(!food.hfs_score?.v1 && !food.hfs_score?.v2) && (
+                  <HFSLabel food={food} variant="card" className="text-base" dict={dict} />
+                )}
               </div>
-              <p className="text-xs text-text-main/50 mt-2">
-                {food.hfs_score?.v1?.HFSv1 >= 7 
-                  ? (t.excellent || 'Excellent') 
-                  : food.hfs_score?.v1?.HFSv1 >= 4 
-                    ? (t.good || 'Good') 
-                    : food.hfs_score?.v1?.HFSv1 >= 0 
-                      ? (t.needsImprovement || 'Needs Improvement') 
-                      : (t.notCalculated || 'Not Calculated')}
-              </p>
             </div>
 
             {/* Typical Portion */}

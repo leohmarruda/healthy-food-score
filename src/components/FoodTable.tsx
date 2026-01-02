@@ -70,7 +70,7 @@ export default function FoodTable({ foods, onFoodClick, dict, sortConfig, onSort
               <td className="px-4 py-3 font-medium text-primary group-hover:underline">{food.product_name}</td>
               <td className="px-4 py-3 text-text-main/70">{food.brand || '—'}</td>
               <td className="px-4 py-3 text-center">
-                <HFSLabel food={food} variant="table" />
+                <HFSLabel food={food} variant="table" dict={dict} />
               </td>
               <td className="px-4 py-3 text-right font-bold text-primary">{food.energy_kcal}</td>
               <td className="px-4 py-3 text-right text-text-main/70">{food.protein_g}g</td>
