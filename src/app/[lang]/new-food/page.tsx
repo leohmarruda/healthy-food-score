@@ -170,24 +170,16 @@ export default function NewFood() {
         ))}
         </div>
 
-        {status && (
-          <div className="bg-primary/10 border border-primary/20 text-primary p-4 rounded-theme text-center">
-            <div className="flex items-center justify-center gap-2">
-              <span className="animate-spin">⏳</span>
-              <span className="font-medium">{status}</span>
-            </div>
-          </div>
-        )}
         <button 
           type="submit"
           disabled={loading || !files.front || !files.nutrition}
-          className="w-full bg-primary text-white py-4 rounded-theme font-bold hover:opacity-90 disabled:bg-text-main/20 disabled:text-text-main/50 disabled:cursor-not-allowed shadow-md transition relative"
+          className="w-full bg-primary text-white py-4 rounded-theme font-bold hover:opacity-90 disabled:bg-text-main/20 disabled:text-text-main/50 disabled:cursor-not-allowed shadow-md transition relative flex items-center justify-center gap-2"
         >
           {loading && (
-            <span className="absolute left-4 animate-spin">⏳</span>
+            <span className="animate-spin">⏳</span>
           )}
-          <span className={loading ? 'opacity-70' : ''}>
-            {loading ? dict.pages?.addFood?.btnProcessing : dict.pages?.addFood?.btnSave}
+          <span className={loading ? 'opacity-90' : ''}>
+            {loading ? (status || dict.pages?.addFood?.btnProcessing) : dict.pages?.addFood?.btnSave}
           </span>
         </button>
       </form>

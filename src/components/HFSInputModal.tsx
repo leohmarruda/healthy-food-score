@@ -472,6 +472,24 @@ export default function HFSInputModal({
                 <div key={key} className={`flex flex-col ${isTextArea ? 'col-span-2' : ''}`}>
                   <label className="text-xs font-medium text-text-main/80 mb-1 flex items-center gap-1.5">
                     <span>{label}</span>
+                    {key === 's7' && (
+                      <svg
+                        className="w-4 h-4 text-text-main/50 hover:text-text-main/70 flex-shrink-0 cursor-help"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        role="img"
+                        aria-label={'1 – in natura ou minimamente processado (frutas, legumes, grãos integrais, leite, carne in natura)\n2 – ingredientes culinários processados (óleo, açúcar, sal, manteiga, etc., usados em combinação simples)\n3 – processados (pão simples, queijos, conservas salgadas etc., poucos ingredientes)\n4 – ultraprocessados (vários aditivos, "aromatizante", "realçador de sabor", "gordura vegetal hidrogenada", etc.)'}
+                      >
+                        <title>{'1 – in natura ou minimamente processado (frutas, legumes, grãos integrais, leite, carne in natura)\n2 – ingredientes culinários processados (óleo, açúcar, sal, manteiga, etc., usados em combinação simples)\n3 – processados (pão simples, queijos, conservas salgadas etc., poucos ingredientes)\n4 – ultraprocessados (vários aditivos, "aromatizante", "realçador de sabor", "gordura vegetal hidrogenada", etc.)'}</title>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    )}
                     {defaultConfig.showIcon && <DefaultValueIcon tooltipText={defaultConfig.tooltipText} />}
                   </label>
                   {isTextArea ? (

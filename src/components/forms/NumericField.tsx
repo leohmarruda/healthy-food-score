@@ -20,6 +20,7 @@ interface NumericFieldProps {
   defaultValue?: number;
   showDefaultAsItalic?: boolean;
   max?: number;
+  infoTooltip?: string;
 }
 
 // Helper function to validate numeric fields
@@ -63,7 +64,8 @@ export default function NumericField({
   integerOnly = false,
   defaultValue,
   showDefaultAsItalic = false,
-  max
+  max,
+  infoTooltip
 }: NumericFieldProps) {
   const [hasError, setHasError] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
@@ -214,6 +216,24 @@ export default function NumericField({
       <label className="block text-xs font-bold text-text-main/70 mb-1 flex items-center gap-1.5">
         <span>{label.replace(/\*$/, '')}</span>
         {required && <span className="text-red-600 font-black text-sm ml-0.5">*</span>}
+        {infoTooltip && (
+          <svg
+            className="w-4 h-4 text-text-main/50 hover:text-text-main/70 flex-shrink-0 cursor-help"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            role="img"
+            aria-label={infoTooltip}
+          >
+            <title>{infoTooltip}</title>
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        )}
         {defaultConfig.showIcon && <DefaultValueIcon tooltipText={defaultConfig.tooltipText} />}
         <div className="ml-auto flex items-center gap-1.5">
           {hasError && (() => {

@@ -157,6 +157,7 @@ export default function NutritionFactsSection({
           onToggleLock={onToggleLock ? () => onToggleLock('NOVA') : undefined}
           onFieldError={onFieldError}
           dict={dict}
+          infoTooltip={'1 – in natura ou minimamente processado (frutas, legumes, grãos integrais, leite, carne in natura)\n2 – ingredientes culinários processados (óleo, açúcar, sal, manteiga, etc., usados em combinação simples)\n3 – processados (pão simples, queijos, conservas salgadas etc., poucos ingredientes)\n4 – ultraprocessados (vários aditivos, "aromatizante", "realçador de sabor", "gordura vegetal hidrogenada", etc.)'}
         />
         {/* Density */}
         <NumericField
