@@ -10,12 +10,18 @@ export function cleanFoodData(data: any): FoodFormData {
   return Object.keys(data).reduce((acc: any, key) => {
     if (key === 'ingredients_list') {
       acc[key] = data[key] || [];
+    } else if (key === 'density') {
+      // Default density to 1.0 if null or undefined
+      acc[key] = data[key] ?? 1.0;
     } else if (optionalNumericFields.includes(key)) {
-      // Keep null/undefined for optional numeric fields
+      // Keep null/undefined for other optional numeric fields
       acc[key] = data[key] ?? undefined;
-    } else if (key === 'hfs_version') {
-      // Default to 'v2' if hfs_version is null/undefined
-      acc[key] = data[key] || 'v2';
+    } else if (key === 'hfs_score') {
+      // Keep hfs_score as-is (JSON object)
+      acc[key] = data[key] || null;
+    } else if (key === 'location') {
+      // Default location to "Brasil" if empty or null
+      acc[key] = data[key] && data[key].trim() ? data[key] : 'Brasil';
     } else {
       acc[key] = data[key] === null ? "" : data[key];
     }
@@ -84,13 +90,42 @@ export function isFormDirty(
 }
 
 /**
+ * Extracts HFS score from hfs_score JSON
+ * Always returns the highest version available (v2 > v1)
+ */
+export function extractHFSScore(hfsScore: any): { score: number; version: string } {
+  if (!hfsScore || typeof hfsScore !== 'object') {
+    return { score: -1, version: 'v2' };
+  }
+  
+  // Check v2 first (highest version)
+  if (hfsScore.v2) {
+    // For v2, use hfs_score from the JSON (mock value 0)
+    return { score: hfsScore.v2.hfs_score !== undefined ? hfsScore.v2.hfs_score : 0, version: 'v2' };
+  }
+  
+  // Fallback to v1 if v2 doesn't exist
+  if (hfsScore.v1?.HFSv1 !== undefined) {
+    return { score: hfsScore.v1.HFSv1, version: 'v1' };
+  }
+  
+  return { score: -1, version: 'v2' };
+}
+
+/**
  * Formats HFS score for display
  */
-export function formatHFSScore(hfs: number | null | undefined, isDirty: boolean): string {
-  if (isDirty) return '—';
-  if (hfs === null || hfs === undefined || hfs < 0) return '—';
-  const numValue = typeof hfs === 'number' ? hfs : Number(hfs);
-  if (isNaN(numValue) || numValue < 0) return '—';
-  return numValue.toFixed(1);
+export function formatHFSScore(hfsScore: any, isDirty: boolean): string {
+  // Always show the score, even when form is dirty
+  if (!hfsScore || typeof hfsScore !== 'object') {
+    return '—';
+  }
+  
+  // Format the entire JSON object for display
+  try {
+    return JSON.stringify(hfsScore, null, 2);
+  } catch (e) {
+    return '—';
+  }
 }
 

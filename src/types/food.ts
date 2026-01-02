@@ -6,8 +6,7 @@ export interface Food {
   product_name: string; // Changed from 'name' to match database
   brand?: string;
   category?: string;
-  hfs: number; // Health Food Score (0-100)
-  hfs_version?: string; // HFS calculation version (v1, v2)
+  hfs_score?: any; // Health Food Score JSON: { v1: {...} } or { v2: {...} }
   data_source?: string; // Default: 'label'
   NOVA?: number; // NOVA classification (1-4)
   

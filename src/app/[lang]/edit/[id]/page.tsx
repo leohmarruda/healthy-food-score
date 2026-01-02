@@ -1,13 +1,15 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { toast } from 'sonner';
 
 import ConfirmModal from '@/components/ConfirmModal';
+import HFSInputModal from '@/components/HFSInputModal';
 import HFSScoresModal from '@/components/HFSScoresModal';
 import Spinner from '@/components/Spinner';
 import BasicInfoSection from '@/components/forms/BasicInfoSection';
 import ExtraDataSection from '@/components/forms/ExtraDataSection';
+import HFSSection from '@/components/forms/HFSSection';
 import ImageGallery from '@/components/forms/ImageGallery';
 import NutritionFactsSection from '@/components/forms/NutritionFactsSection';
 import { useFoodForm } from '@/hooks/useFoodForm';
@@ -17,6 +19,7 @@ import { getDictionary } from '@/lib/get-dictionary';
 import { supabase } from '@/lib/supabase';
 import { deleteFoodRecord } from '@/utils/api';
 import { cleanFoodData, extractImageUrls } from '@/utils/form-helpers';
+import { useHFSPreparation } from '@/hooks/useHFSPreparation';
 
 export default function EditFood() {
   // Hooks
@@ -36,18 +39,22 @@ export default function EditFood() {
   } = useFoodForm();
 
   const { isLocked, toggleLock } = useLockedFields();
+  const { prepare } = useHFSPreparation();
 
   // State
   const [loading, setLoading] = useState(true);
   const [dict, setDict] = useState<any>(null);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showHFSInputModal, setShowHFSInputModal] = useState(false);
   const [showHFSScoresModal, setShowHFSScoresModal] = useState(false);
   const [hfsScores, setHfsScores] = useState<any>(null);
   const [hfsTotalScore, setHfsTotalScore] = useState<number | undefined>(undefined);
   const [servingSize, setServingSize] = useState<number | undefined>(undefined);
   const [servingUnit, setServingUnit] = useState<string | undefined>(undefined);
   const [density, setDensity] = useState<number | undefined>(undefined);
+  const [selectedHfsVersion, setSelectedHfsVersion] = useState<string>('v2');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, boolean>>({});
 
   // Data fetching
   const fetchLatestData = async () => {
@@ -90,6 +97,14 @@ export default function EditFood() {
 
       if (data) {
         initializeForm(data);
+        // Set selected version based on hfs_score or default to v2
+        if (data.hfs_score?.v1) {
+          setSelectedHfsVersion('v1');
+        } else if (data.hfs_score?.v2) {
+          setSelectedHfsVersion('v2');
+        } else {
+          setSelectedHfsVersion('v2');
+        }
       }
       setLoading(false);
     }
@@ -97,18 +112,185 @@ export default function EditFood() {
   }, [id, lang, initializeForm]);
 
   // Event handlers
+  // Function to scroll to first error field
+  const scrollToFirstError = () => {
+    const errorFields = Object.keys(fieldErrors).filter(key => fieldErrors[key]);
+    if (errorFields.length === 0) return;
+
+    // Find the first error field
+    const firstErrorField = errorFields[0];
+    
+    // Try multiple selectors to find the field container or input
+    let targetElement: HTMLElement | null = null;
+    
+    // First try to find the field container by ID
+    targetElement = document.getElementById(`field-${firstErrorField}`);
+    
+    // If not found, try by data attribute
+    if (!targetElement) {
+      targetElement = document.querySelector(`[data-field-container="${firstErrorField}"]`) as HTMLElement;
+    }
+    
+    // If still not found, try to find the input by name
+    if (!targetElement) {
+      const input = document.querySelector(`input[name="${firstErrorField}"], textarea[name="${firstErrorField}"]`) as HTMLElement;
+      if (input) {
+        targetElement = input.closest('div') || input;
+      }
+    }
+    
+    // If still not found, try by data-field-name
+    if (!targetElement) {
+      targetElement = document.querySelector(`[data-field-name="${firstErrorField}"]`) as HTMLElement;
+    }
+    
+    if (targetElement) {
+      // Find the parent section
+      const section = targetElement.closest('section');
+      if (section) {
+        // Calculate scroll position with offset for header
+        const headerOffset = 120;
+        const elementPosition = section.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+        
+        // Then focus the input field and scroll it into view
+        setTimeout(() => {
+          const input = targetElement?.querySelector('input, textarea') as HTMLElement;
+          if (input) {
+            input.focus();
+            input.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          } else {
+            targetElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }
+        }, 400);
+      } else {
+        // If no section found, scroll directly to the element
+        const headerOffset = 120;
+        const elementPosition = targetElement.getBoundingClientRect().top;
+        const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: 'smooth'
+        });
+        
+        setTimeout(() => {
+          const input = targetElement?.querySelector('input, textarea') as HTMLElement;
+          if (input) {
+            input.focus();
+          }
+        }, 400);
+      }
+    } else {
+      // Fallback: scroll to form start
+      console.warn(`Field ${firstErrorField} not found`);
+      const form = document.querySelector('form');
+      if (form) {
+        form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
+  // Callback for components to report field errors
+  const reportFieldError = useCallback((fieldName: string, hasError: boolean) => {
+    setFieldErrors(prev => {
+      // Only update if the error state actually changed
+      const currentState = prev[fieldName] || false;
+      if (currentState === hasError) {
+        return prev; // No change needed
+      }
+      
+      if (hasError) {
+        return { ...prev, [fieldName]: true };
+      } else {
+        const next = { ...prev };
+        delete next[fieldName];
+        return next;
+      }
+    });
+  }, []);
+
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Check for validation errors
+    const hasErrors = Object.keys(fieldErrors).some(key => fieldErrors[key]);
+    if (hasErrors) {
+      scrollToFirstError();
+      return;
+    }
     try {
-      const result = await saveFood(formData);
-      if (result && result.scores) {
-        setHfsScores(result.scores);
-        setHfsTotalScore(result.score);
-        setServingSize(result.servingSize);
-        setServingUnit(result.servingUnit);
-        setDensity(result.density);
-        setShowHFSScoresModal(true);
+      const initialData = await prepare(formData, selectedHfsVersion);
+      setHfsScores(initialData.scores || {});
+      setServingSize(initialData.servingSize);
+      setServingUnit(initialData.servingUnit);
+      setDensity(initialData.density);
+      setShowHFSInputModal(true);
+    } catch (error) {
+      toast.error(dict?.pages?.edit?.hfsCalculationError || 'Error preparing HFS parameters.');
+    }
+  };
+
+  const handleHFSInputConfirm = async (editedData: any) => {
+    try {
+      if (selectedHfsVersion === 'v2') {
+        // Check HFS input using modal data
+        const { checkHFSInput } = await import('@/utils/hfs');
+        const updatedFormData = { ...formData, ...editedData };
+        const checkResult = checkHFSInput(updatedFormData, 'v2', dict);
+        
+        if (checkResult.warnings && checkResult.warnings.length > 0) {
+          checkResult.warnings.forEach(warning => {
+            toast.warning(warning);
+          });
+        }
+        
+        const result = await saveFood(updatedFormData, undefined, 'v2');
+        if (result?.scores) {
+          setHfsScores(result.scores);
+          setHfsTotalScore(result.score);
+        }
+      } else {
+        // Check HFS input using modal data for v1
+        const { checkHFSInput } = await import('@/utils/hfs');
+        const updatedFormData = {
+          ...formData,
+          ...Object.fromEntries(
+            ['s1a', 's1b', 's2', 's3a', 's3b', 's4', 's5', 's6', 's7', 's8'].map(key => {
+              // Preserve s7 value even if it's 0 or undefined
+              const value = editedData[key];
+              return [key, value !== undefined ? value : (key === 's7' ? undefined : 0)];
+            })
+          ),
+          density: editedData.density ?? formData.density,
+          // NOVA is required for v1 validation - use s7 from editedData if available, otherwise use formData.NOVA
+          NOVA: editedData.s7 !== undefined ? editedData.s7 : formData.NOVA,
+        };
+        const checkResult = checkHFSInput(updatedFormData, 'v1', dict);
+        
+        if (checkResult.warnings && checkResult.warnings.length > 0) {
+          checkResult.warnings.forEach(warning => {
+            toast.warning(warning);
+          });
+        }
+        
+        const { calculateHFSScores } = await import('@/utils/hfs-calculations');
+        const calculatedScores = calculateHFSScores(editedData);
+        const hfsv1Score = calculatedScores.HFSv1;
+        // Use the same updatedFormData that was validated
+        const result = await saveFood(updatedFormData, hfsv1Score, 'v1');
+        if (result?.scores) {
+          setHfsScores(editedData);
+          setHfsTotalScore(hfsv1Score);
+        }
       }
+      setShowHFSInputModal(false);
+      setShowHFSScoresModal(true);
     } catch (error) {
       // Error already handled by toast
     }
@@ -186,6 +368,7 @@ export default function EditFood() {
               onChange={updateField}
               isLocked={isLocked}
               onToggleLock={toggleLock}
+              onFieldError={reportFieldError}
             />
             <NutritionFactsSection
               formData={formData}
@@ -194,6 +377,7 @@ export default function EditFood() {
               onChange={updateField}
               isLocked={isLocked}
               onToggleLock={toggleLock}
+              onFieldError={reportFieldError}
             />
             <ExtraDataSection 
               formData={formData} 
@@ -201,10 +385,16 @@ export default function EditFood() {
               onChange={updateField}
               isLocked={isLocked}
               onToggleLock={toggleLock}
+              onFieldError={reportFieldError}
+            />
+            <HFSSection
+              formData={formData}
+              dict={dict}
+              isDirty={dirty}
             />
 
             <div className="border-t border-text-main/10 pt-8 mt-8">
-              <div className="flex flex-col sm:flex-row gap-3 w-full">
+              <div className="flex flex-col sm:flex-row gap-3 w-full items-center">
                 <button
                   type="button"
                   onClick={handleCancelClick}
@@ -218,13 +408,20 @@ export default function EditFood() {
 
                 <button
                   type="submit"
-                  disabled={isSaving || (!dirty && formData.hfs != null)}
+                  disabled={isSaving || (!dirty && formData.hfs_score != null)}
                   className="flex-1 px-8 py-3 bg-primary text-white rounded-theme font-bold shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100 disabled:hover:shadow-lg"
                 >
                   {isSaving ? (
                     <>
                       <Spinner />
                       <span>{t.saving || 'Saving...'}</span>
+                    </>
+                  ) : Object.keys(fieldErrors).some(key => fieldErrors[key]) ? (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      {t.btnVerifyData || 'Verificar dados'}
                     </>
                   ) : (
                     <>
@@ -235,6 +432,21 @@ export default function EditFood() {
                     </>
                   )}
                 </button>
+
+                {/* HFS Version - do lado direito do botão salvar */}
+                <div className="flex-shrink-0">
+                  <label className="block text-xs font-bold text-text-main/70 mb-1">
+                    {dict?.pages?.edit?.labelHfsVersion || 'HFS Version'}
+                  </label>
+                  <select
+                    value={selectedHfsVersion || 'v2'}
+                    onChange={(e) => setSelectedHfsVersion(e.target.value)}
+                    className="w-full bg-background border border-text-main/20 text-text-main p-2 rounded-theme h-[42px] focus:outline-none focus:border-primary min-w-[100px]"
+                  >
+                    <option value="v1">v1</option>
+                    <option value="v2">v2</option>
+                  </select>
+                </div>
               </div>
 
               <div className="mt-3 pt-3">
@@ -283,9 +495,47 @@ export default function EditFood() {
         onCancel={() => setShowDeleteModal(false)}
         dict={dict}
       />
+      <HFSInputModal
+        isOpen={showHFSInputModal}
+        version={selectedHfsVersion}
+        scores={hfsScores || {}}
+        formData={{
+          ingredients_list: formData.ingredients_list,
+          energy_kcal: formData.energy_kcal,
+          carbs_total_g: formData.carbs_total_g,
+          protein_g: formData.protein_g,
+          sodium_mg: formData.sodium_mg,
+          fiber_g: formData.fiber_g,
+          saturated_fat_g: formData.saturated_fat_g,
+          trans_fat_g: formData.trans_fat_g,
+          abv_percentage: formData.abv_percentage,
+          declared_processes: formData.declared_processes,
+          declared_special_nutrients: formData.declared_special_nutrients,
+          serving_size_value: formData.serving_size_value,
+        }}
+        servingSize={servingSize}
+        servingUnit={servingUnit}
+        density={density}
+        onConfirm={handleHFSInputConfirm}
+        onCancel={() => setShowHFSInputModal(false)}
+        dict={dict}
+      />
       <HFSScoresModal
         isOpen={showHFSScoresModal}
+        version={selectedHfsVersion}
         scores={hfsScores || {}}
+        formData={{
+          fiber_g: formData.fiber_g,
+          protein_g: formData.protein_g,
+          carbs_total_g: formData.carbs_total_g,
+          energy_kcal: formData.energy_kcal,
+          fat_total_g: formData.fat_total_g,
+          abv_percentage: formData.abv_percentage,
+          sugars_added_g: formData.sugars_added_g,
+          trans_fat_g: formData.trans_fat_g,
+          sodium_mg: formData.sodium_mg,
+          ingredients_list: formData.ingredients_list,
+        }}
         totalScore={hfsTotalScore}
         servingSize={servingSize}
         servingUnit={servingUnit}

@@ -8,7 +8,7 @@ const initialState: FoodFormData = {
   product_name: '',
   brand: '',
   category: '',
-  hfs: 0,
+  hfs_score: null,
   energy_kcal: 0,
   protein_g: 0,
   carbs_total_g: 0,

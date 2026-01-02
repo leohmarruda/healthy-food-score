@@ -1,4 +1,6 @@
+'use client';
 import FormField from './FormField';
+import NumericField from './NumericField';
 import type { FoodFormData } from '@/types/food';
 
 interface BasicInfoSectionProps {
@@ -7,6 +9,7 @@ interface BasicInfoSectionProps {
   onChange: (field: keyof FoodFormData, value: string) => void;
   isLocked?: (field: string) => boolean;
   onToggleLock?: (field: string) => void;
+  onFieldError?: (fieldName: string, hasError: boolean) => void;
 }
 
 export default function BasicInfoSection({
@@ -14,7 +17,8 @@ export default function BasicInfoSection({
   dict,
   onChange,
   isLocked,
-  onToggleLock
+  onToggleLock,
+  onFieldError
 }: BasicInfoSectionProps) {
   return (
     <section>
@@ -43,21 +47,22 @@ export default function BasicInfoSection({
           label={dict?.pages?.edit?.labelLocation || 'Location'}
           name="location"
           value={formData.location || ''}
-          onChange={(value) => onChange('location', value)}
+          onChange={(value) => onChange('location', value || 'Brasil')}
           type="text"
+          placeholder={formData.location ? undefined : 'Brasil'}
           locked={isLocked?.('location')}
           onToggleLock={onToggleLock ? () => onToggleLock('location') : undefined}
           dict={dict}
         />
-        <FormField
+        <NumericField
           label={dict?.pages?.edit?.labelPrice || 'Price'}
           name="price"
           value={formData.price || ''}
           onChange={(value) => onChange('price', value)}
-          type="number"
           step="0.01"
           locked={isLocked?.('price')}
           onToggleLock={onToggleLock ? () => onToggleLock('price') : undefined}
+          onFieldError={onFieldError}
           dict={dict}
         />
         <div>

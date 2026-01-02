@@ -90,17 +90,19 @@ export default function FoodProfileModal({ food, isOpen, onClose, dict }: FoodPr
               <div className="w-full bg-text-main/10 h-4 rounded-full overflow-hidden">
                 <div 
                   className={`h-full transition-all duration-700 ${
-                    food.hfs >= 7 ? 'bg-green-500' : food.hfs >= 4 ? 'bg-orange-400' : food.hfs >= 0 ? 'bg-red-500' : 'bg-gray-400'
+                    food.hfs_score?.v1?.HFSv1 >= 7 ? 'bg-green-500' : 
+                    food.hfs_score?.v1?.HFSv1 >= 4 ? 'bg-orange-400' : 
+                    food.hfs_score?.v1?.HFSv1 >= 0 ? 'bg-red-500' : 'bg-gray-400'
                   }`}
-                  style={{ width: `${food.hfs >= 0 ? (food.hfs * 10) : 0}%` }}
+                  style={{ width: `${food.hfs_score?.v1?.HFSv1 >= 0 ? (food.hfs_score.v1.HFSv1 * 10) : 0}%` }}
                 />
               </div>
               <p className="text-xs text-text-main/50 mt-2">
-                {food.hfs >= 7 
+                {food.hfs_score?.v1?.HFSv1 >= 7 
                   ? (t.excellent || 'Excellent') 
-                  : food.hfs >= 4 
+                  : food.hfs_score?.v1?.HFSv1 >= 4 
                     ? (t.good || 'Good') 
-                    : food.hfs >= 0 
+                    : food.hfs_score?.v1?.HFSv1 >= 0 
                       ? (t.needsImprovement || 'Needs Improvement') 
                       : (t.notCalculated || 'Not Calculated')}
               </p>

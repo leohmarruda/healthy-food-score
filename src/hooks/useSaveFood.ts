@@ -2,7 +2,9 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 
 import { validateFormData, sanitizeNumericFields } from '@/utils/form-helpers';
-import { checkHFSInput, calculateHFS } from '@/utils/hfs';
+import { checkHFSInput } from '@/utils/hfs';
+import { preserveOtherVersions, extractNumericScore } from '@/utils/hfs-helpers';
+import { preserveOptionalFields } from '@/utils/sanitization';
 import type { FoodFormData } from '@/types/food';
 
 // Constants
@@ -26,7 +28,7 @@ export function useSaveFood(foodId: string, dict: any, onSuccess?: () => void) {
   const [isSaving, setIsSaving] = useState(false);
 
   // Functions
-  const saveFood = async (formData: FoodFormData) => {
+  const saveFood = async (formData: FoodFormData, hfsv1Score?: number, hfsVersion?: string) => {
     const validation = validateFormData(formData);
     if (!validation.valid) {
       toast.error(dict?.pages?.edit?.requiredFieldsError || 'Name and Brand are required.');
@@ -42,90 +44,115 @@ export function useSaveFood(foodId: string, dict: any, onSuccess?: () => void) {
         : [];
 
       // Calculate HFS score
-      const hfsVersion = formData.hfs_version || 'v2';
-      let score = -1.0;
-      let hfsScores: any = null;
+      const version = hfsVersion || (formData.hfs_score?.v1 ? 'v1' : 
+                        formData.hfs_score?.v2 ? 'v2' : 'v2');
       
-      // Check HFS input and display warnings
-      const checkResult = checkHFSInput(formData, hfsVersion, dict);
+      // Preserve other versions when calculating
+      let hfsScoreJson = preserveOtherVersions(formData.hfs_score, version);
+      
+      // Note: HFS input validation is now done in handleHFSInputConfirm using modal data
+      // This check is kept for backward compatibility but warnings are shown in the modal flow
 
-      if (checkResult.warnings && checkResult.warnings.length > 0) {
-        checkResult.warnings.forEach(warning => {
-          toast.warning(warning);
-        });
-      }
-
-      // Proceed with calculation only if check passed
-      if (checkResult.success) {
-        try {
-          const hfs_response = await calculateHFS(formData, hfsVersion, dict);
-          if (!hfs_response.success || hfs_response.error) {
-            const errorMessage = hfs_response.error || 
-              dict?.hfs?.calculationError ||
-              dict?.pages?.edit?.hfsCalculationError ||
-              "Error calculating Nutritional Score. Please check the entered values.";
-            toast.error(errorMessage);
-            throw new Error(errorMessage);
+      // Try to calculate HFS score - ONLY the selected version
+      try {
+        if (version === 'v1') {
+          // For v1, calculate scores and update/add v1 in the JSON
+          if (hfsv1Score !== undefined && hfsv1Score !== null) {
+            const { calculateHFSScores } = await import('@/utils/hfs-calculations');
+            const calculatedScores = calculateHFSScores({
+              s1a: formData.s1a || 0,
+              s1b: formData.s1b || 0,
+              s2: formData.s2 || 0,
+              s3a: formData.s3a || 0,
+              s3b: formData.s3b || 0,
+              s4: formData.s4 || 0,
+              s5: formData.s5 || 0,
+              s6: formData.s6 || 0,
+              s7: formData.s7 || 0,
+              s8: formData.s8 || 0,
+            });
+            // Update/add v1, preserving v2 if it exists
+            hfsScoreJson = {
+              ...hfsScoreJson,
+              v1: {
+                HFSv1: hfsv1Score,
+                ...calculatedScores
+              }
+            };
           }
-          score = hfs_response.hfs_score;
-          hfsScores = hfs_response.scores || null;
-        } catch (calcError: any) {
-          const errorMessage = calcError?.message || 
-            dict?.hfs?.calculationError ||
-            dict?.pages?.edit?.hfsCalculationError ||
-            "Error calculating Nutritional Score. Please check the entered values.";
-          toast.error(errorMessage);
-          throw new Error(errorMessage);
+        } else if (version === 'v2') {
+          // For v2, calculate and update/add v2 in the JSON
+          const { calculateHFSV2Scores } = await import('@/utils/hfs-calculations');
+          const v2Scores = await calculateHFSV2Scores({
+            fiber_g: formData.fiber_g || 0,
+            protein_g: formData.protein_g || 0,
+            carbs_total_g: formData.carbs_total_g || 0,
+            energy_kcal: formData.energy_kcal || 0,
+            fat_total_g: formData.fat_total_g || 0,
+            abv_percentage: formData.abv_percentage || 0,
+            sugars_added_g: formData.sugars_added_g || 0,
+            trans_fat_g: formData.trans_fat_g || 0,
+            sodium_mg: formData.sodium_mg || 0,
+            ingredients_list: formData.ingredients_list || [],
+          });
+          // Update/add v2, preserving v1 if it exists
+          hfsScoreJson = {
+            ...hfsScoreJson,
+            v2: {
+              hfs_score: 0,
+              ...v2Scores
+            }
+          };
         }
+      } catch (calcError: any) {
+        const errorMessage = calcError?.message || 
+          dict?.hfs?.calculationError ||
+          dict?.pages?.edit?.hfsCalculationError ||
+          "Error calculating Nutritional Score. Please check the entered values.";
+        toast.error(errorMessage);
+        // Don't throw - allow save to proceed with null hfs_score
+        console.error('HFS calculation error:', calcError);
       }
 
       // Sanitize numeric fields
       const sanitizedPayload = sanitizeNumericFields(formData, NUMERIC_FIELDS);
       
-      // Preserve null/undefined for optional fields (density, price, abv_percentage)
-      // But preserve actual numeric values if they exist
-      if (formData.density === null || formData.density === undefined) {
-        sanitizedPayload.density = formData.density;
-      } else if (formData.density !== 0) {
-        sanitizedPayload.density = Number(formData.density);
-      }
-      if (formData.price === null || formData.price === undefined) {
-        sanitizedPayload.price = formData.price;
-      }
-      if (formData.abv_percentage === null || formData.abv_percentage === undefined) {
-        sanitizedPayload.abv_percentage = formData.abv_percentage;
-      }
+      // Preserve optional fields
+      const optionalFields: (keyof FoodFormData)[] = ['density', 'price', 'abv_percentage'];
+      const finalPayload = preserveOptionalFields(sanitizedPayload, formData, optionalFields);
       
-      // Build complete payload with all fields
+      // Extract numeric score
+      const hfsNumericScore = extractNumericScore(hfsScoreJson);
+      
+      // Build complete payload
       const payload = {
-        product_name: sanitizedPayload.product_name || '',
-        brand: sanitizedPayload.brand || '',
-        category: sanitizedPayload.category || '',
-        hfs: score,
-        energy_kcal: sanitizedPayload.energy_kcal ?? 0,
-        protein_g: sanitizedPayload.protein_g ?? 0,
-        carbs_total_g: sanitizedPayload.carbs_total_g ?? 0,
-        fat_total_g: sanitizedPayload.fat_total_g ?? 0,
-        sodium_mg: sanitizedPayload.sodium_mg ?? 0,
-        fiber_g: sanitizedPayload.fiber_g ?? 0,
-        saturated_fat_g: sanitizedPayload.saturated_fat_g ?? 0,
-        trans_fat_g: sanitizedPayload.trans_fat_g ?? 0,
-        serving_size_value: sanitizedPayload.serving_size_value ?? 0,
-        serving_size_unit: sanitizedPayload.serving_size_unit || '',
+        product_name: finalPayload.product_name || '',
+        brand: finalPayload.brand || '',
+        category: finalPayload.category || '',
+        hfs_score: hfsScoreJson,
+        energy_kcal: finalPayload.energy_kcal ?? 0,
+        protein_g: finalPayload.protein_g ?? 0,
+        carbs_total_g: finalPayload.carbs_total_g ?? 0,
+        fat_total_g: finalPayload.fat_total_g ?? 0,
+        sodium_mg: finalPayload.sodium_mg ?? 0,
+        fiber_g: finalPayload.fiber_g ?? 0,
+        saturated_fat_g: finalPayload.saturated_fat_g ?? 0,
+        trans_fat_g: finalPayload.trans_fat_g ?? 0,
+        serving_size_value: finalPayload.serving_size_value ?? 0,
+        serving_size_unit: finalPayload.serving_size_unit || '',
         ingredients_list: cleanIngredientsList,
-        ingredients_raw: sanitizedPayload.ingredients_raw || '',
-        nutrition_raw: sanitizedPayload.nutrition_raw || '',
-        declared_special_nutrients: sanitizedPayload.declared_special_nutrients || '',
-        declared_processes: sanitizedPayload.declared_processes || '',
-        declared_warnings: sanitizedPayload.declared_warnings || '',
-        location: sanitizedPayload.location || '',
-        price: sanitizedPayload.price ?? null,
-        abv_percentage: sanitizedPayload.abv_percentage ?? null,
-        density: sanitizedPayload.density ?? null,
-        certifications: sanitizedPayload.certifications || '',
-        hfs_version: sanitizedPayload.hfs_version || 'v2',
-        NOVA: sanitizedPayload.NOVA ?? null,
-        nutrition_parsed: sanitizedPayload.nutrition_parsed || null,
+        ingredients_raw: finalPayload.ingredients_raw || '',
+        nutrition_raw: finalPayload.nutrition_raw || '',
+        declared_special_nutrients: finalPayload.declared_special_nutrients || '',
+        declared_processes: finalPayload.declared_processes || '',
+        declared_warnings: finalPayload.declared_warnings || '',
+        location: finalPayload.location && finalPayload.location.trim() ? finalPayload.location : 'Brasil',
+        price: finalPayload.price ?? null,
+        abv_percentage: finalPayload.abv_percentage ?? null,
+        density: finalPayload.density ?? null,
+        certifications: finalPayload.certifications || '',
+        NOVA: formData.NOVA ?? null,
+        nutrition_parsed: finalPayload.nutrition_parsed || null,
         last_update: new Date().toISOString()
       };
 
@@ -143,20 +170,12 @@ export function useSaveFood(foodId: string, dict: any, onSuccess?: () => void) {
       setIsSaving(false);
       if (onSuccess) onSuccess();
       
-      // Get density from formData (before sanitization) to preserve the actual value
-      // Check both sanitizedPayload and formData to ensure we get the value
-      const densityValue = sanitizedPayload.density !== undefined && sanitizedPayload.density !== null && sanitizedPayload.density !== 0
-        ? sanitizedPayload.density
-        : (formData.density !== undefined && formData.density !== null && formData.density !== 0
-          ? formData.density
-          : undefined);
-      
       return { 
-        score, 
-        scores: hfsScores,
-        servingSize: sanitizedPayload.serving_size_value,
-        servingUnit: sanitizedPayload.serving_size_unit,
-        density: densityValue
+        score: hfsNumericScore, 
+        scores: hfsScoreJson,
+        servingSize: finalPayload.serving_size_value,
+        servingUnit: finalPayload.serving_size_unit,
+        density: finalPayload.density
       };
     };
 
@@ -167,7 +186,12 @@ export function useSaveFood(foodId: string, dict: any, onSuccess?: () => void) {
       {
         loading: dict?.pages?.edit?.saving || 'Calculating score and saving...',
         success: (result) => {
-          const scoreMsg = result.score >= 0 ? ` (Score: ${result.score})` : '';
+          let scoreMsg = '';
+          if (result.score >= 0) {
+            scoreMsg = ` (Score: ${result.score})`;
+          } else if (result.scores?.v2) {
+            scoreMsg = ' (HFS v2 calculated)';
+          }
           return `${dict?.pages?.edit?.saveSuccess || 'Updated successfully!'}${scoreMsg}`;
         },
         error: (err) => {

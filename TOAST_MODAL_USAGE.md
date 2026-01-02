@@ -76,3 +76,5 @@ All toast messages and modal content use translation keys from the dictionary fi
 5. **User feedback**: Every user action should provide feedback via toast or modal
 
 
+
+

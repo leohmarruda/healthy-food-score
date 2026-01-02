@@ -1,4 +1,5 @@
 import type { Food } from '@/types/food';
+import { extractHFSScore } from '@/utils/form-helpers';
 
 interface HFSLabelProps {
   food: Food;
@@ -7,8 +8,7 @@ interface HFSLabelProps {
 }
 
 export default function HFSLabel({ food, variant = 'card', className = '' }: HFSLabelProps) {
-  const hfs = food.hfs ?? -1;
-  const version = food.hfs_version || 'v2';
+  const { score: hfs, version } = extractHFSScore(food.hfs_score);
 
   // Get HFS badge color styles
   const getHFSStyles = (score: number) => {

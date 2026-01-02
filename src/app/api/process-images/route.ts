@@ -24,6 +24,7 @@ STEP 1: EXTRACTION (Raw Data)
 - "declared_warnings": Extract warnings such as 'contém glúten', 'contém lactose', 'contém açúcar', 'contém alérgenos' (separated by comma)
 - "certifications": Extract any certifications found in the image, separated by comma (vegan, organic, gluten-free, etc.)
 - "abv_percentage": If alcoholic, look for ABV (teor alcoólico)
+- "density_g_per_ml": If a liquid, look for density (g/ml)
 STEP 2: PROCESSING
 - Format: Use a PERIOD (.) as the decimal separator.
 - "ingredients_list": remove end period, replace the last " e " by comma and parse ingredients_raw separating by comma into a string array
@@ -110,7 +111,8 @@ RETURN ONLY VALID JSON:
       "vitamin_e_mg": number,
       "vitamin_k_mcg": number
     },
-    "abv_percentage": "float"
+    "abv_percentage": "float",
+    "density_g_per_ml": "float"
   }
 }`
         },

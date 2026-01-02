@@ -16,7 +16,7 @@ export async function PATCH(
         product_name: body.product_name,
         brand: body.brand,
         category: body.category,
-        hfs: body.hfs,
+        hfs_score: body.hfs_score,
         energy_kcal: body.energy_kcal,
         protein_g: body.protein_g,
         carbs_total_g: body.carbs_total_g,
@@ -38,8 +38,7 @@ export async function PATCH(
         abv_percentage: body.abv_percentage,
         density: body.density,
         certifications: body.certifications,
-        hfs_version: body.hfs_version,
-        // NOVA: body.NOVA, // TODO: Uncomment when NOVA column is added to database
+        NOVA: body.NOVA,
         nutrition_parsed: body.nutrition_parsed,
         last_update: body.last_update        
       })
