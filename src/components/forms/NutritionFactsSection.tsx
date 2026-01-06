@@ -183,6 +183,18 @@ export default function NutritionFactsSection({
               onFieldError={onFieldError}
               dict={dict}
             />
+            {/* Net Content */}
+            <NumericField
+              label={`${dict?.pages?.edit?.labelNetContent || 'Conteúdo Líquido'} (g/ml)`}
+              name="net_content_g_ml"
+              value={formData.net_content_g_ml ?? ''}
+              onChange={(value) => onChange('net_content_g_ml', value)}
+              step="0.01"
+              locked={isLocked?.('net_content_g_ml')}
+              onToggleLock={onToggleLock ? () => onToggleLock('net_content_g_ml') : undefined}
+              onFieldError={onFieldError}
+              dict={dict}
+            />
           </>
         )}
         {/* NOVA Classification */}

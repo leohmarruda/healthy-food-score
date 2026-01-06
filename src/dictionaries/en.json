@@ -122,6 +122,7 @@
       "hfsCalculationError": "Error calculating Nutritional Score. Please check the entered values.",
       "labelABV": "ABV (%) - Alcohol by Volume",
       "labelBrand": "Brand*",
+      "labelNetContent": "Net Content",
       "labelCertifications": "Certifications",
       "labelHfsVersion": "HFS Version",
       "labelIngredientsList": "Ingredient list (parsed)",

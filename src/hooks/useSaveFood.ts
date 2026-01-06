@@ -22,7 +22,8 @@ const NUMERIC_FIELDS: (keyof FoodFormData)[] = [
   'serving_size_value',
   'price',
   'abv_percentage',
-  'density'
+  'density',
+  'net_content_g_ml'
 ];
 
 /**
@@ -83,6 +84,7 @@ export function useSaveFood(foodId: string, dict: any, onSuccess?: () => void) {
               s6: formData.s6 || 0,
               s7: formData.s7 || 0,
               s8: formData.s8 || 0,
+              abv_percentage: formData.abv_percentage || 0,
             });
             // Update/add v1, preserving v2 if it exists
             hfsScoreJson = {
@@ -131,7 +133,7 @@ export function useSaveFood(foodId: string, dict: any, onSuccess?: () => void) {
       const sanitizedPayload = sanitizeNumericFields(formData, NUMERIC_FIELDS);
       
       // Preserve optional fields
-      const optionalFields: (keyof FoodFormData)[] = ['density', 'price', 'abv_percentage'];
+      const optionalFields: (keyof FoodFormData)[] = ['density', 'price', 'abv_percentage', 'net_content_g_ml'];
       const finalPayload = preserveOptionalFields(sanitizedPayload, formData, optionalFields);
       
       // Extract numeric score
@@ -163,6 +165,7 @@ export function useSaveFood(foodId: string, dict: any, onSuccess?: () => void) {
         price: finalPayload.price ?? null,
         abv_percentage: finalPayload.abv_percentage ?? null,
         density: finalPayload.density ?? null,
+        net_content_g_ml: finalPayload.net_content_g_ml ?? null,
         certifications: finalPayload.certifications || '',
         NOVA: formData.NOVA ?? null,
         nutrition_parsed: finalPayload.nutrition_parsed || null,

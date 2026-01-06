@@ -37,6 +37,7 @@ export async function PATCH(
         price: body.price,
         abv_percentage: body.abv_percentage,
         density: body.density,
+        net_content_g_ml: body.net_content_g_ml,
         certifications: body.certifications,
         NOVA: body.NOVA,
         nutrition_parsed: body.nutrition_parsed,

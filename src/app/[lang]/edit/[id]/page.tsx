@@ -321,7 +321,12 @@ export default function EditFood() {
         }
         
         const { calculateHFSScores } = await import('@/utils/hfs-calculations');
-        const calculatedScores = calculateHFSScores(editedData);
+        // Include abv_percentage from formData if not in editedData
+        const scoresForCalculation = {
+          ...editedData,
+          abv_percentage: editedData.abv_percentage !== undefined ? editedData.abv_percentage : (formData.abv_percentage || 0),
+        };
+        const calculatedScores = calculateHFSScores(scoresForCalculation);
         const hfsv1Score = calculatedScores.HFSv1;
         // Use the same updatedFormData that was validated
         const result = await saveFood(updatedFormData, hfsv1Score, 'v1');

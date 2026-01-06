@@ -122,6 +122,7 @@
       "hfsCalculationError": "Erro ao calcular o Score Nutricional. Verifique os valores inseridos.",
       "labelABV": "Teor Alcoólico (%)",
       "labelBrand": "Marca*",
+      "labelNetContent": "Conteúdo Líquido",
       "labelCertifications": "Certificações",
       "labelHfsVersion": "Versão HFS",
       "labelIngredientsList": "Lista de Ingredientes (processada)",

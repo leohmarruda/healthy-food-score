@@ -296,6 +296,7 @@ export async function calculateHFS(formData: FoodFormData, version: string = 'v2
   let hfsScore = -1;
   if (version === 'v1') {
     const { calculateHFSScores } = await import('@/utils/hfs-calculations');
+    const abvPer100g = formData.abv_percentage || 0; // ABV is already a percentage, no conversion needed
     const calculatedScores = calculateHFSScores({
       s1a: typeof scores.s1a === 'number' ? scores.s1a : 0,
       s1b: typeof scores.s1b === 'number' ? scores.s1b : 0,
@@ -307,6 +308,7 @@ export async function calculateHFS(formData: FoodFormData, version: string = 'v2
       s6: typeof scores.s6 === 'number' ? scores.s6 : 0,
       s7: typeof scores.s7 === 'number' ? scores.s7 : 0,
       s8: typeof scores.s8 === 'number' ? scores.s8 : 0,
+      abv_percentage: abvPer100g,
     });
     hfsScore = calculatedScores.HFSv1 || -1;
   }

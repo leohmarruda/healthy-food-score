@@ -30,6 +30,7 @@ export interface Food {
   serving_size_value?: number; // Changed from portion_size_value
   serving_size_unit?: string; // Changed from portion_unit
   density?: number;
+  net_content_g_ml?: number; // Net content in grams or milliliters
   
   // Raw data fields
   ingredients_raw?: string;

@@ -68,7 +68,12 @@ export default function HFSScoresModal({
         } else {
           // Scores are already in 100g format - normalize and calculate
           const normalizedScores = normalizeScores(scores);
-          const calculated = calculateHFSScores(normalizedScores);
+          // Include abv_percentage from formData if available
+          const scoresWithABV = {
+            ...normalizedScores,
+            abv_percentage: formData?.abv_percentage || 0,
+          };
+          const calculated = calculateHFSScores(scoresWithABV);
           setCalculatedScores(calculated);
         }
       } catch (error) {
@@ -106,6 +111,7 @@ export default function HFSScoresModal({
     { key: 'S6', label: t.S6Label || 'S6: Sódio', value: calculatedScores.S6 },
     { key: 'S7', label: t.S7Label || 'S7: Grau de processamento (NOVA)', value: calculatedScores.S7 },
     { key: 'S8', label: t.S8Label || 'S8: Aditivos artificiais', value: calculatedScores.S8 },
+    { key: 'S9', label: t.S9Label || 'S9: Álcool', value: calculatedScores.S9 },
     { key: 'N', label: t.NLabel || 'N: Valor nutricional', value: calculatedScores.N },
     { key: 'M', label: t.MLabel || 'M: Risco metabólico', value: calculatedScores.M },
     { key: 'P', label: t.PLabel || 'P: Fator prejudicial', value: calculatedScores.P },

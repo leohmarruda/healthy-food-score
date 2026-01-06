@@ -19,6 +19,7 @@ interface HFSParameters {
   s6?: number; // Sodium (mg)
   s7?: number; // Processing degree (NOVA: 1-4)
   s8?: number; // Artificial additives (count)
+  abv_percentage?: number; // Alcohol by volume (%)
 }
 
 /**
@@ -34,6 +35,7 @@ interface HFSCalculatedScores {
   S6?: number; // Sodium score
   S7?: number; // Processing degree score (NOVA)
   S8?: number; // Additives score
+  S9?: number; // Alcohol score (0.789*ABV)
   N?: number; // Nutritional score
   M?: number; // Moderation score
   P?: number; // Processing score
@@ -188,6 +190,7 @@ export function calculateHFSScores(params: HFSParameters): HFSCalculatedScores {
   const s6 = typeof params.s6 === 'number' && !isNaN(params.s6) ? params.s6 : 0;
   const s7 = typeof params.s7 === 'number' && !isNaN(params.s7) ? params.s7 : 0;
   const s8 = typeof params.s8 === 'number' && !isNaN(params.s8) ? params.s8 : 0;
+  const abv_percentage = typeof params.abv_percentage === 'number' && !isNaN(params.abv_percentage) ? params.abv_percentage : 0;
 
   // Helper functions
   const MAX = Math.max;
@@ -242,11 +245,14 @@ export function calculateHFSScores(params: HFSParameters): HFSCalculatedScores {
   // S8 = MAX(0, 100-12*MIN(COUNT(s8),6))
   const S8 = MAX(0, 100 - 12 * MIN(s8, 6));
 
+  // S9 = 0.789*ABV
+  const S9 = 0.789 * abv_percentage;
+
   // N = (20S1+15S2+20S3+15S4+10S5+10S6)/90
   const N = (20 * S1 + 15 * S2 + 20 * S3 + 15 * S4 + 10 * S5 + 10 * S6) / 90;
 
-  // M = MIN(MAX(100-0.25*s4-2.5*s1a-0.02*s6,0),100)
-  const M = MIN(MAX(100 - 0.25 * s4 - 2.5 * s1a - 0.02 * s6, 0), 100);
+  // M = MIN(MAX(100-0.25*s4-2.5*s1a-0.02*s6-2*S9,0),100)
+  const M = MIN(MAX(100 - 0.25 * s4 - 2.5 * s1a - 0.02 * s6 - 2 * S9, 0), 100);
 
   // P = (0.85 + 0.15*min(S1,S3,S4,S6)/100)
   const P = 0.85 + 0.15 * MIN(S1, S3, S4, S6) / 100;
@@ -254,8 +260,8 @@ export function calculateHFSScores(params: HFSParameters): HFSCalculatedScores {
   // R = 0.7 + 0.3 * (0.7*S7 + 0.3*S8)/100
   const R = 0.7 + 0.3 * ((0.7 * (S7 || 0) + 0.3 * S8) / 100);
 
-  // HFSv1.0 = 0.6*M*P*R+0.4*N
-  const HFSv1 = 0.6 * M * P * R + 0.4 * N;
+  // HFSv1.0 = 0.7*M*P*R+0.3*N
+  const HFSv1 = 0.7 * M * P * R + 0.3 * N;
 
   // Round all values to 3 decimal places
   const round3 = (value: number) => Math.round(value * 1000) / 1000;
@@ -270,6 +276,7 @@ export function calculateHFSScores(params: HFSParameters): HFSCalculatedScores {
     S6: round3(S6),
     S7: S7 !== undefined ? round3(S7) : undefined,
     S8: round3(S8),
+    S9: round3(S9),
     N: round3(N),
     M: round3(M),
     P: round3(P),

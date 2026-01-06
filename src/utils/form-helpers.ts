@@ -5,7 +5,7 @@ import type { Food, FoodFormData } from '@/types/food';
  */
 export function cleanFoodData(data: any): FoodFormData {
   // Fields that should remain as null/undefined when null (numeric optional fields)
-  const optionalNumericFields = ['abv_percentage', 'density'];
+  const optionalNumericFields = ['abv_percentage', 'density', 'net_content_g_ml'];
   
   return Object.keys(data).reduce((acc: any, key) => {
     if (key === 'ingredients_list') {

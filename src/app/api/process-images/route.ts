@@ -25,6 +25,7 @@ STEP 1: EXTRACTION (Raw Data)
 - "certifications": Extract any certifications found in the image, separated by comma (vegan, organic, gluten-free, etc.)
 - "abv_percentage": If alcoholic, look for ABV (teor alcoólico)
 - "density_g_per_ml": If a liquid, look for density (g/ml), if not, set to null
+- "net_content_g_ml": Look for net content (either g or ml), if not, set to null
 STEP 2: PROCESSING
 - Format: Use a PERIOD (.) as the decimal separator.
 - "ingredients_list": remove end period, replace the last " e " by comma and parse ingredients_raw separating by comma into a string array
@@ -50,6 +51,7 @@ RETURN ONLY VALID JSON:
       "serving_size_unit": "string",
       "serving_description": "Ex: 1 xícara, 2 fatias",
       "servings_per_container": number
+      "net_content_g_ml": number
     },
     "energy_kcal": number,
     "carbohydrates": {
