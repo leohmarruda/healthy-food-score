@@ -25,6 +25,8 @@ export interface Food {
   fiber_g?: number;
   saturated_fat_g?: number;
   trans_fat_g?: number;
+  sugars_total_g?: number;
+  sugars_added_g?: number;
   
   // Portion information
   serving_size_value?: number; // Changed from portion_size_value

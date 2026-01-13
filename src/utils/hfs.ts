@@ -295,22 +295,29 @@ export async function calculateHFS(formData: FoodFormData, version: string = 'v2
   // Calculate HFSv1 if version is v1
   let hfsScore = -1;
   if (version === 'v1') {
-    const { calculateHFSScores } = await import('@/utils/hfs-calculations');
+    const { calculateHFSV1Scores } = await import('@/utils/hfs-calculations');
     const abvPer100g = formData.abv_percentage || 0; // ABV is already a percentage, no conversion needed
-    const calculatedScores = calculateHFSScores({
-      s1a: typeof scores.s1a === 'number' ? scores.s1a : 0,
-      s1b: typeof scores.s1b === 'number' ? scores.s1b : 0,
-      s2: typeof scores.s2 === 'number' ? scores.s2 : 0,
-      s3a: typeof scores.s3a === 'number' ? scores.s3a : 0,
-      s3b: typeof scores.s3b === 'number' ? scores.s3b : 0,
-      s4: typeof scores.s4 === 'number' ? scores.s4 : 0,
-      s5: typeof scores.s5 === 'number' ? scores.s5 : 0,
-      s6: typeof scores.s6 === 'number' ? scores.s6 : 0,
-      s7: typeof scores.s7 === 'number' ? scores.s7 : 0,
-      s8: typeof scores.s8 === 'number' ? scores.s8 : 0,
-      abv_percentage: abvPer100g,
+    // Calculate total sugars from s1a + s1b if available
+    const sugars_total_g = (typeof scores.s1a === 'number' ? scores.s1a : 0) + 
+                           (typeof scores.s1b === 'number' ? scores.s1b : 0);
+    const calculatedScores = calculateHFSV1Scores({
+      energy_kcal: typeof scores.s4 === 'number' ? scores.s4 : (formData.energy_kcal || 0),
+      fiber_g: typeof scores.s2 === 'number' ? scores.s2 : (formData.fiber_g || 0),
+      sugars_added_g: typeof scores.s1a === 'number' ? scores.s1a : (formData.sugars_added_g || 0),
+      sugars_total_g: sugars_total_g > 0 ? sugars_total_g : (formData.sugars_total_g || 0),
+      total_fat_g: formData.fat_total_g || 0,
+      saturated_fat_g: typeof scores.s3a === 'number' ? scores.s3a : (formData.saturated_fat_g || 0),
+      trans_fat_g: typeof scores.s3b === 'number' ? scores.s3b : (formData.trans_fat_g || 0),
+      sodium_mg: typeof scores.s6 === 'number' ? scores.s6 : (formData.sodium_mg || 0),
+      protein_g: typeof scores.s5 === 'number' ? scores.s5 : (formData.protein_g || 0),
+      NOVA: typeof scores.s7 === 'number' ? scores.s7 : (formData.NOVA || 0),
+      n_ing: typeof scores.s8 === 'number' ? scores.s8 : 0,
+      ABV_percentage: abvPer100g,
+      density_g_ml: formData.density,
+      serving_size_g: formData.serving_size_value,
+      is_liquid: formData.density != null,
     });
-    hfsScore = calculatedScores.HFSv1 || -1;
+    hfsScore = calculatedScores.HFS || -1;
   }
   
   return { 

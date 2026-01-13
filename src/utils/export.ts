@@ -31,7 +31,7 @@ export const downloadAsCSV = (data: any[], fileName: string, dict?: any) => {
     const delimiter = ";";
     const rows = data.map(food => {
       // Extract v1 and v2 scores from hfs_score JSON
-      const v1Score = food.hfs_score?.v1?.HFSv1 ?? "";
+      const v1Score = food.hfs_score?.v1?.HFS ?? food.hfs_score?.v1?.HFSv1 ?? "";
       const v2Score = food.hfs_score?.v2?.hfs_score ?? "";
       
       // Format ingredients list as comma-separated string

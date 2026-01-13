@@ -55,7 +55,14 @@ export default function FoodProfileModal({ food, isOpen, onClose, dict }: FoodPr
               <span className="text-xs font-bold text-primary uppercase tracking-widest">
                 {food.brand || t.noBrand || 'Generic'}
               </span>
-              <h2 className="text-3xl font-black text-text-main leading-tight">{food.product_name}</h2>
+              <h2 className="text-3xl font-black text-text-main leading-tight">
+                {food.product_name}
+                {(food as any).net_content_g_ml != null && (
+                  <span className="text-xl font-normal text-text-main/70 ml-2">
+                    ({(food as any).net_content_g_ml} g ou ml)
+                  </span>
+                )}
+              </h2>
               <p className="text-text-main/60 italic text-sm mt-1">
                 {(food.category && dict.categories) 
                   ? (dict.categories[food.category as keyof typeof dict.categories] || food.category)
@@ -93,7 +100,7 @@ export default function FoodProfileModal({ food, isOpen, onClose, dict }: FoodPr
                     dict={dict} 
                   />
                 )}
-                {food.hfs_score?.v1?.HFSv1 !== undefined && (
+                {(food.hfs_score?.v1?.HFS !== undefined || food.hfs_score?.v1?.HFSv1 !== undefined) && (
                   <HFSLabel 
                     food={{ ...food, hfs_score: { v1: food.hfs_score.v1 } }} 
                     variant="card" 

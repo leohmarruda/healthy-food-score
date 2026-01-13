@@ -4,11 +4,17 @@ import "./../globals.css";
 import Navbar from '@/components/Navbar'; // Adjust path if needed
 import { Toaster } from 'sonner';
 
-export default function RootLayout({
-  children,
-}: {
+interface LayoutProps {
   children: React.ReactNode;
-}) {
+  params: Promise<{ lang: string }>;
+}
+
+export default async function RootLayout({
+  children,
+  params,
+}: LayoutProps) {
+  await params; // Await params even if not used directly
+  
   return (
     <html lang="en" className="bg-background">
       <body className="bg-background text-text-main min-h-screen">

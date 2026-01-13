@@ -240,6 +240,9 @@ export default function HomeClient({ dict, lang, initialFoodId }: { dict: any, l
             return food.hfs_score.v2.hfs_score;
           }
           // Fallback to v1 if v2 doesn't exist
+          if (food.hfs_score.v1?.HFS !== undefined) {
+            return food.hfs_score.v1.HFS;
+          }
           if (food.hfs_score.v1?.HFSv1 !== undefined) {
             return food.hfs_score.v1.HFSv1;
           }

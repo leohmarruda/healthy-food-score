@@ -6,86 +6,110 @@
  */
 
 /**
- * HFS v1 input parameters (per 100g)
+ * HFS v1 input arguments (per 100g)
  */
-interface HFSParameters {
-  s1a?: number; // Added sugars (g)
-  s1b?: number; // Natural sugars (g)
-  s2?: number; // Fiber (g)
-  s3a?: number; // Saturated fat (g)
-  s3b?: number; // Trans fat (g)
-  s4?: number; // Energy density (kcal)
-  s5?: number; // Protein (g)
-  s6?: number; // Sodium (mg)
-  s7?: number; // Processing degree (NOVA: 1-4)
-  s8?: number; // Artificial additives (count)
-  abv_percentage?: number; // Alcohol by volume (%)
+interface HFSV1Arguments {
+  energy_kcal?: number; // Energy (kcal)
+  carbs_total_g?: number; // Total carbohydrates (g)
+  fiber_g?: number; // Fiber (g)
+  sugars_added_g?: number; // Added sugar (g)
+  saturated_fat_g?: number; // Saturated fat (g)
+  trans_fat_g?: number; // Trans fat (g)
+  total_fat_g?: number; // Total fat (g)
+  sodium_mg?: number; // Sodium (mg)
+  protein_g?: number; // Protein (g)
+  sugars_total_g?: number; // Total sugars (g)
+  n_ing?: number; // Number of ingredients
+  serving_size_g?: number; // Portion size (g) - for reference, values should already be normalized to 100g
+  density_g_ml?: number; // Density (g/ml), if liquid
+  ABV_percentage?: number; // Alcohol by volume (%)
+  NOVA?: number; // Processing level (1-4)
+  is_liquid?: boolean; // True if density_g_ml is not null
 }
 
 /**
  * HFS v1 calculated scores
  */
 interface HFSCalculatedScores {
-  S1?: number; // Sugar score
-  S2?: number; // Fiber score
-  s3?: number; // Combined fat (saturated + 10*trans)
-  S3?: number; // Fat score
-  S4?: number; // Energy density score
-  S5?: number; // Protein score
-  S6?: number; // Sodium score
-  S7?: number; // Processing degree score (NOVA)
-  S8?: number; // Additives score
-  S9?: number; // Alcohol score (0.789*ABV)
-  N?: number; // Nutritional score
-  M?: number; // Moderation score
-  P?: number; // Processing score
-  R?: number; // Risk score
-  HFSv1?: number; // Final HFS v1 score
+  benefits?: number; // Aggregate benefits
+  metabolic_risk?: number; // Metabolic risk
+  behavioral_risk?: number; // Behavioral risk
+  red_flag_risk?: number; // Red flag risk
+  processing_risk?: number; // Processing risk (structural risk)
+  raw_score?: number; // Raw score (before sigmoid)
+  HFS?: number; // Final HFS score (0–100)
+  HFS_version?: string; // HFS version string
 }
 
 /**
- * HFS v2 input parameters (per 100g)
+ * HFS v1 version constant
  */
-interface HFSV2Parameters {
+const HFS_VERSION_V1 = "1.1";
+
+/**
+ * HFS v2 input arguments (per 100g)
+ */
+interface HFSV2Arguments {
+  // Nutritional values (per 100g)
   fiber_g?: number; // Fiber (g)
   protein_g?: number; // Protein (g)
   carbs_total_g?: number; // Total carbohydrates (g)
   energy_kcal?: number; // Energy (kcal)
   fat_total_g?: number; // Total fat (g)
-  abv_percentage?: number; // Alcohol by volume (%)
-  sugars_added_g?: number; // Added sugars (g)
+  saturated_fat_g?: number; // Saturated fat (g)
   trans_fat_g?: number; // Trans fat (g)
+  sugars_added_g?: number; // Added sugars (g)
   sodium_mg?: number; // Sodium (mg)
+  abv_percentage?: number; // Alcohol by volume (%)
+  
+  // Ingredients and processing
   ingredients_list?: string[]; // Ingredients list for additive detection
+  declared_processes?: string; // Declared processes
+  declared_special_nutrients?: string; // Declared special nutrients
+  certifications?: string; // Certifications
+  
+  // Portion and location
+  serving_size_value?: number; // Serving size value
+  serving_size_unit?: string; // Serving size unit (g, ml, etc.)
+  density?: number; // Density (g/ml)
+  location?: string; // Location
 }
 
 /**
  * HFS v2 calculated scores
  */
 interface HFSV2CalculatedScores {
-  fibra?: number; // Fiber score
-  proteina_bruta?: number; // Raw protein score
-  proteina?: number; // Protein score
-  baixo_carbo_liquido?: number; // Low net carbs score
-  baixa_densidade?: number; // Low energy density score
-  F_hidratacao?: number; // Hydration factor
+  S_fiber?: number; // Fiber score
+  protein_Raw?: number; // Raw protein score
+  S_protein?: number; // Protein score
+  low_net_carbs?: number; // Low net carbs score
+  low_energy_density?: number; // Low energy density score
+  hydration?: number; // Hydration factor
+  whole_ingredients?: number; // Whole ingredients score
+  B_nutr?: number; // Nutritional benefit score
   S_carbo_liquido?: number; // Net carbs score
   S_razao_carb_fibra?: number; // Carb/fiber ratio score
   S_gordura_trans?: number; // Trans fat score
   S_sodio?: number; // Sodium score
   S_densidade_energetica?: number; // Energy density score
   aditivos?: number; // Additives score
+  HFS_version?: string; // HFS version string
 }
 
 /**
+ * HFS v2 version constant
+ */
+const HFS_VERSION_V2 = "2.0";
+
+/**
  * Saturation function (Michaelis–Menten kinetics).
- * Used in HFS v2 calculations: S(x, k) = x / (x + k)
+ * Used in HFS v2 calculations: sat(x, k) = x / (x + k)
  * 
  * @param x - Input value
  * @param k - Saturation constant (half-maximum value)
  * @returns Saturation value between 0 and 1
  */
-function S(x: number, k: number): number {
+function sat(x: number, k: number): number {
   if (k === 0) {
     // If k is 0, return 1 if x > 0, 0 otherwise
     return x > 0 ? 1 : 0;
@@ -95,6 +119,45 @@ function S(x: number, k: number): number {
     return 0;
   }
   return x / (x + k);
+}
+
+/**
+ * Positional weight function.
+ * Calculates the normalized weight for position j in a sequence of N positions.
+ * Formula: w_pos(j, N) = e_pos(j) / Σ_{i=1..N} e_pos(i)
+ * where e_pos(j) = exp(-0.25 * (j − 1))
+ * 
+ * @param j - Position index (1-based)
+ * @param N - Total number of positions
+ * @returns Normalized positional weight between 0 and 1
+ */
+function w_pos(j: number, N: number): number {
+  if (N <= 0 || j < 1 || j > N) {
+    return 0;
+  }
+  
+  // Calculate e_pos(j) = exp(-0.25 * (j - 1))
+  const e_pos_j = Math.exp(-0.25 * (j - 1));
+  
+  // Calculate sum of all e_pos(i) for i = 1 to N
+  let sum = 0;
+  for (let i = 1; i <= N; i++) {
+    sum += Math.exp(-0.25 * (i - 1));
+  }
+  
+  // Return normalized weight
+  return sum > 0 ? e_pos_j / sum : 0;
+}
+
+/**
+ * Sigmoid function.
+ * Formula: sigmoid(z) = 1 / (1 + exp(-z))
+ * 
+ * @param z - Input value
+ * @returns Sigmoid value between 0 and 1
+ */
+function sigmoid(z: number): number {
+  return 1 / (1 + Math.exp(-z));
 }
 
 /**
@@ -178,110 +241,247 @@ async function calculateHarmfulAdditives(ingredientsList: string[]): Promise<num
  * @param params - HFS v1 input parameters (per 100g)
  * @returns Calculated HFS v1 scores
  */
-export function calculateHFSScores(params: HFSParameters): HFSCalculatedScores {
+export function calculateHFSV1Scores(params: HFSV1Arguments): HFSCalculatedScores {
   // Normalize all values to numbers, defaulting to 0 if undefined or null
-  const s1a = typeof params.s1a === 'number' && !isNaN(params.s1a) ? params.s1a : 0;
-  const s1b = typeof params.s1b === 'number' && !isNaN(params.s1b) ? params.s1b : 0;
-  const s2 = typeof params.s2 === 'number' && !isNaN(params.s2) ? params.s2 : 0;
-  const s3a = typeof params.s3a === 'number' && !isNaN(params.s3a) ? params.s3a : 0;
-  const s3b = typeof params.s3b === 'number' && !isNaN(params.s3b) ? params.s3b : 0;
-  const s4 = typeof params.s4 === 'number' && !isNaN(params.s4) ? params.s4 : 0;
-  const s5 = typeof params.s5 === 'number' && !isNaN(params.s5) ? params.s5 : 0;
-  const s6 = typeof params.s6 === 'number' && !isNaN(params.s6) ? params.s6 : 0;
-  const s7 = typeof params.s7 === 'number' && !isNaN(params.s7) ? params.s7 : 0;
-  const s8 = typeof params.s8 === 'number' && !isNaN(params.s8) ? params.s8 : 0;
-  const abv_percentage = typeof params.abv_percentage === 'number' && !isNaN(params.abv_percentage) ? params.abv_percentage : 0;
+ 
+ 
+ 
+ 
+ 
+  const serving_size_g = typeof params.serving_size_g === 'number' && !isNaN(params.serving_size_g) ? params.serving_size_g : 100;
+  const energy_kcal = typeof params.energy_kcal === 'number' && !isNaN(params.energy_kcal) ? params.energy_kcal : 0;
+  const carbs_total_g = typeof params.carbs_total_g === 'number' && !isNaN(params.carbs_total_g) ? params.carbs_total_g : 0; 
+  const sugars_total_g = typeof params.sugars_total_g === 'number' && !isNaN(params.sugars_total_g) ? params.sugars_total_g : 0;
+  const sugars_added_g = typeof params.sugars_added_g === 'number' && !isNaN(params.sugars_added_g) ? params.sugars_added_g : 0;
+  const sugars_natural_g = Math.max(0, sugars_total_g - sugars_added_g); // Natural sugars = total - added
+  const fiber_g = typeof params.fiber_g === 'number' && !isNaN(params.fiber_g) ? params.fiber_g : 0;
+  const total_fat_g = typeof params.total_fat_g === 'number' && !isNaN(params.total_fat_g) ? params.total_fat_g : 0;
+  const saturated_fat_g = typeof params.saturated_fat_g === 'number' && !isNaN(params.saturated_fat_g) ? params.saturated_fat_g : 0;
+  const trans_fat_g = typeof params.trans_fat_g === 'number' && !isNaN(params.trans_fat_g) ? params.trans_fat_g : 0;
+  const protein_g = typeof params.protein_g === 'number' && !isNaN(params.protein_g) ? params.protein_g : 0;
+  const sodium_mg = typeof params.sodium_mg === 'number' && !isNaN(params.sodium_mg) ? params.sodium_mg : 0;
+  const NOVA = typeof params.NOVA === 'number' && !isNaN(params.NOVA) ? params.NOVA : 0;
+  const n_ing = typeof params.n_ing === 'number' && !isNaN(params.n_ing) ? params.n_ing : 0;
+  const ABV_percentage = typeof params.ABV_percentage === 'number' && !isNaN(params.ABV_percentage) ? params.ABV_percentage : 0;
+  const density_g_ml = typeof params.density_g_ml === 'number' && !isNaN(params.density_g_ml) ? params.density_g_ml : undefined;
 
+  
+  // Derived flags and quantities
+  const is_liquid = density_g_ml != null && density_g_ml > 0 ? 1 : 0;
+  
+  let serving_ml = 0;
+  let energy_100ml = 0;
+  let ethanol_g = 0;
+  
+  if (is_liquid === 1 && density_g_ml && density_g_ml > 0) {
+    serving_ml = serving_size_g / density_g_ml;
+    energy_100ml = serving_ml > 0 ? (energy_kcal * 100) / serving_ml : 0;
+    ethanol_g = 0.789 * (ABV_percentage / 100) * serving_ml;
+  }
+  
+  // net_carbs_g = max(0, carbs_total_g - fiber_g)
+  const net_carbs_g = Math.max(0, carbs_total_g - fiber_g);
+  
+  // sodium_100g = sodium_mg * 100 / serving_size_g
+  const sodium_100g = serving_size_g > 0 ? (sodium_mg * 100) / serving_size_g : sodium_mg;
+  
+  // Auxiliary variables
+  // non_water_mass_g = carbs_total_g + protein_g + total_fat_g + fiber_g
+  const non_water_mass_g = carbs_total_g + protein_g + total_fat_g + fiber_g;
+  
+  // water_eq_g = max(0, serving_size_g - non_water_mass_g)
+  const water_eq_g = Math.max(0, serving_size_g - non_water_mass_g);
+  
   // Helper functions
   const MAX = Math.max;
-  const MIN = Math.min;
-  const EXP = Math.exp;
-
-  // S1 = MAX(MIN(100-4*s1a-2.5*MAX(s1a+s1b-s2,0)-4*MAX((s1a+s1b)/MAX(MIN(s2, 4), 0.5)-4,0),100),0)
-  // Breaking down the formula for clarity and correctness:
-  const totalSugars = s1a + s1b;
-  const fiberAdjusted = MAX(MIN(s2, 4), 0.5);
-  const sugarFiberDiff = MAX(totalSugars - s2, 0);
-  const sugarFiberRatio = totalSugars / fiberAdjusted;
-  const ratioPenalty = MAX(sugarFiberRatio - 4, 0);
   
-  const S1Value = 100 - (4 * s1a) - (2.5 * sugarFiberDiff) - (4 * ratioPenalty);
-  const S1 = MAX(MIN(S1Value, 100), 0);
+  // 6 Benefits block (benefits)
+  // Fiber benefit
+  // S_fiber = sat(fiber_g, 5)
+  const S_fiber = sat(fiber_g, 5);
+  
+  // Protein benefit
+  // S_protein = sat(protein_g, 10)
+  const S_protein = sat(protein_g, 10);
+  
+  // Hydration benefit (water-equivalent mass, penalized by sugar and alcohol)
+  // S_hydration = sat(water_eq_g, 140) * (1 - sat(net_carbs_g, 25)) * (1 - sat(ABV_percentage, 2))
+  const S_hydration = sat(water_eq_g, 140) * (1 - sat(net_carbs_g, 25)) * (1 - sat(ABV_percentage, 2));
+  
+  // dose_relevance = sat(non_water_mass_g, 10)
+  const dose_relevance = sat(non_water_mass_g, 10);
+  
+  // Aggregate benefits
+  // benefits = dose_relevance * (0.40*S_fiber + 0.35*S_protein) + 0.25 * S_hydration
+  const benefits = dose_relevance * (0.40 * S_fiber + 0.35 * S_protein) + 0.25 * S_hydration;
 
-  // S2 = MIN(100*(s2/8)^0.454,100)
-  const S2 = s2 > 0 ? MIN(100 * Math.pow(s2 / 8, 0.454), 100) : 0;
+  // 7 Metabolic Risk
+  // 7.1 Metabolic subcomponents (all range 0–1)
+  
+  // Energy load
+  // S_energy = sat(energy_kcal, 300)
+  const S_energy = sat(energy_kcal, 300);
+  
+  // Added sugar load
+  // S_added_sugar = sat(sugars_added_g, 12)
+  const S_added_sugar = sat(sugars_added_g, 12);
+  
+  // Carb–fiber ratio
+  // S_carb_fiber_ratio = sat(carbs_total_g / (fiber_g + 1), 8)
+  const S_carb_fiber_ratio = sat(carbs_total_g / (fiber_g + 1), 8);
+  
+  // Net carb load
+  // S_net_carbs = sat(net_carbs_g, 20)
+  const S_net_carbs = sat(net_carbs_g, 20);
+  
+  // Combined carbohydrate stress
+  // S_carbs = max(S_added_sugar, 0.5 * S_carb_fiber_ratio, 0.3 * S_net_carbs)
+  const S_carbs = MAX(
+    S_added_sugar,
+    0.5 * S_carb_fiber_ratio,
+    0.3 * S_net_carbs
+  );
+  
+  // Sodium load
+  // S_sodium = sat(sodium_mg, 600)
+  const S_sodium = sat(sodium_mg, 600);
+  
+  // Alcohol load
+  // S_alcohol = sat(ethanol_g, 14)
+  const S_alcohol = sat(ethanol_g, 14);
+  
+  // Fiber protection
+  // S_fiber_protection = 0.25*sat(fiber_g, 5)
+  const S_fiber_protection = 0.25 * sat(fiber_g, 5);
+  
+  // 7.2 Conditional saturated-fat logic
+  
+  // Indicators
+  // I_fiber_low = 1 if fiber_g < 3 else 0
+  const I_fiber_low = fiber_g < 3 ? 1 : 0;
+  
+  // I_ratio_high = 1 if (carbs_total_g / (fiber_g + 1)) > 8 else 0
+  const I_ratio_high = (carbs_total_g / (fiber_g + 1)) > 8 ? 1 : 0;
+  
+  // I_nova_high = 1 if NOVA >= 3 else 0
+  const I_nova_high = NOVA >= 3 ? 1 : 0;
+  
+  // Trigger count
+  // trigger_count = I_fiber_low + I_ratio_high + I_nova_high
+  const trigger_count = I_fiber_low + I_ratio_high + I_nova_high;
+  
+  // Trigger strength
+  // S_trigger = sat(trigger_count, 1)
+  const S_trigger = sat(trigger_count, 1);
+  
+  // Saturated fat (conditional)
+  // S_saturated_fat = sat(saturated_fat_g, 8) * S_trigger
+  const S_saturated_fat = sat(saturated_fat_g, 8) * S_trigger;
+  
+  // Trans fat
+  // S_trans_fat = sat(trans_fat_g, 0.5)
+  const S_trans_fat = sat(trans_fat_g, 0.5);
+  
+  // Combined fat stress
+  // S_fat = 0.75 * S_saturated_fat + 0.25 * S_trans_fat
+  const S_fat = 0.75 * S_saturated_fat + 0.25 * S_trans_fat;
+  
+  // 7.3 Aggregate metabolic risk
+  // M_core = 1 - (1 - 0.28*S_energy) * (1 - 0.32*S_carbs) * (1 - 0.14*S_fat) * (1 - 0.14*S_sodium) * (1 - 0.18*S_alcohol)
+  const M_core = 1 - (1 - 0.28 * S_energy) * (1 - 0.32 * S_carbs) * (1 - 0.14 * S_fat) * (1 - 0.14 * S_sodium) * (1 - 0.18 * S_alcohol);
+  
+  // metabolic_risk = M_core * (1 - S_fiber_protection)
+  const metabolic_risk = M_core * (1 - S_fiber_protection);
 
-  // s3 = sat + 10 * trans
-  const s3 = s3a + 10 * s3b;
+  // 8 Processing Risk
+  // Ingredient count risk
+  // S_ingredients = sat(max(0, n_ing - 1), 10)
+  const S_ingredients = sat(MAX(0, n_ing - 1), 10);
+  
+  // NOVA baseline
+  // S_nova = sat((NOVA - 1) / 3, 0.60)
+  const S_nova = sat((NOVA - 1) / 3, 0.60);
+  
+  // NOVA gated by formulation
+  // S_nova_effective = S_nova * (0.25 + 0.75 * S_ingredients)
+  const S_nova_effective = S_nova * (0.25 + 0.75 * S_ingredients);
+  
+  // Aggregate structural risk
+  // processing_risk = 1 - (1 - 0.70*S_ingredients) * (1 - 0.30*S_nova_effective)
+  const processing_risk = 1 - (1 - 0.70 * S_ingredients) * (1 - 0.30 * S_nova_effective);
 
-  // S3 = MAX(100-2*s3/(1+0.5*MIN(s2/8, 0.75)),0)
-  const S3 = MAX(100 - 2 * s3 / (1 + 0.5 * MIN(s2 / 8, 0.75)), 0);
+  // 9 Behavioral Risk
+  // Palatability / consumption-trap interaction
+  // behavioral_risk = is_liquid * sat(max(0, net_carbs_g - 8), 8) * sat(sodium_100g, 300)
+  const behavioral_risk = is_liquid * sat(MAX(0, net_carbs_g - 8), 8) * sat(sodium_100g, 300);
 
-  // S4 = (0.6+0.4*(MIN(1,s2/8)))*100 / (1 + (s4/250)^1.3)
-  const S4 = ((0.6 + 0.4 * MIN(1, s2 / 8)) * 100) / (1 + Math.pow(s4 / 250, 1.3));
+  // 10 Red-Flag Risk
+  // Trans fat red flag
+  // S_trans_fat = sat(trans_fat_g, 0.5)
+  const S_trans_fat_red = sat(trans_fat_g, 0.5);
+  
+  // Saturated fat red flag
+  // S_saturated_fat = sat(saturated_fat_g, 8)
+  const S_saturated_fat_red = sat(saturated_fat_g, 8);
+  
+  // Sodium red flag
+  // S_sodium = sat(sodium_mg, 1200)
+  const S_sodium_red = sat(sodium_mg, 1200);
+  
+  // Added sugar red flag
+  // S_added_sugar = sat(sugars_added_g, 25)
+  const S_added_sugar_red = sat(sugars_added_g, 25);
+  
+  // Total sugar extreme flag
+  // S_total_sugar = 0.30 * sat(sugars_total_g, 40)
+  const S_total_sugar_red = 0.30 * sat(sugars_total_g, 40);
+  
+  // Alcohol red flag (high dose only)
+  // S_alcohol = sat(ethanol_g, 28)
+  const S_alcohol_red = sat(ethanol_g, 28);
+  
+  // Aggregate red-flag risk
+  // red_flag_risk = max(S_trans_fat, S_saturated_fat, S_sodium, S_added_sugar, S_total_sugar, S_alcohol)
+  const red_flag_risk = MAX(
+    S_trans_fat_red,
+    S_saturated_fat_red,
+    S_sodium_red,
+    S_added_sugar_red,
+    S_total_sugar_red,
+    S_alcohol_red
+  );
 
-  // S5 = MIN(100*(1-EXP(-s5/8)), 100)
-  const S5 = MIN(100 * (1 - EXP(-s5 / 8)), 100);
-
-  // S6 = MIN(MAX(113.85-0.1154*s6, 0), 100)
-  const S6 = MIN(MAX(113.85 - 0.1154 * s6, 0), 100);
-
-  // S7: Map NOVA (s7) to S7 score
-  // s7=1 → S7 = 100
-  // s7=2 → S7 = 85
-  // s7=3 → S7 = 60
-  // s7=4 → S7 = 25
-  let S7: number | undefined = undefined;
-  if (s7 >= 1 && s7 <= 4) {
-    const s7Map: { [key: number]: number } = {
-      1: 100,
-      2: 85,
-      3: 60,
-      4: 25
-    };
-    S7 = s7Map[Math.round(s7)];
-  }
-
-  // S8 = MAX(0, 100-12*MIN(COUNT(s8),6))
-  const S8 = MAX(0, 100 - 12 * MIN(s8, 6));
-
-  // S9 = 0.789*ABV
-  const S9 = 0.789 * abv_percentage;
-
-  // N = (20S1+15S2+20S3+15S4+10S5+10S6)/90
-  const N = (20 * S1 + 15 * S2 + 20 * S3 + 15 * S4 + 10 * S5 + 10 * S6) / 90;
-
-  // M = MIN(MAX(100-0.25*s4-2.5*s1a-0.02*s6-2*S9,0),100)
-  const M = MIN(MAX(100 - 0.25 * s4 - 2.5 * s1a - 0.02 * s6 - 2 * S9, 0), 100);
-
-  // P = (0.85 + 0.15*min(S1,S3,S4,S6)/100)
-  const P = 0.85 + 0.15 * MIN(S1, S3, S4, S6) / 100;
-
-  // R = 0.7 + 0.3 * (0.7*S7 + 0.3*S8)/100
-  const R = 0.7 + 0.3 * ((0.7 * (S7 || 0) + 0.3 * S8) / 100);
-
-  // HFSv1.0 = 0.7*M*P*R+0.3*N
-  const HFSv1 = 0.7 * M * P * R + 0.3 * N;
+  // 11 Final score
+  // risk_core = 1 - (1 - 0.60*metabolic_risk) * (1 - 0.30*processing_risk) * (1 - 0.15*behavioral_risk)
+  const risk_core = 1 - (1 - 0.60 * metabolic_risk) * (1 - 0.30 * processing_risk) * (1 - 0.15 * behavioral_risk);
+  
+  // total_risk = 1 - (1 - risk_core) * (1 - 0.50*red_flag_risk)
+  const total_risk = 1 - (1 - risk_core) * (1 - 0.50 * red_flag_risk);
+  
+  // Water calibration constant
+  // water_const = 0.174
+  const water_const = 0.174;
+  
+  // Latent score
+  // raw_score = 0.30 * benefits - 0.70 * total_risk + water_const
+  const raw_score = 0.30 * benefits - 0.70 * total_risk + water_const;
+  
+  // Final HFS score (0–100)
+  // HFS = 100 * sigmoid(4 * raw_score)
+  const HFS = 100 * sigmoid(4 * raw_score);
 
   // Round all values to 3 decimal places
   const round3 = (value: number) => Math.round(value * 1000) / 1000;
 
   return {
-    S1: round3(S1),
-    S2: round3(S2),
-    s3: round3(s3),
-    S3: round3(S3),
-    S4: round3(S4),
-    S5: round3(S5),
-    S6: round3(S6),
-    S7: S7 !== undefined ? round3(S7) : undefined,
-    S8: round3(S8),
-    S9: round3(S9),
-    N: round3(N),
-    M: round3(M),
-    P: round3(P),
-    R: round3(R),
-    HFSv1: round3(HFSv1)
+    benefits: round3(benefits),
+    metabolic_risk: round3(metabolic_risk),
+    behavioral_risk: round3(behavioral_risk),
+    red_flag_risk: round3(red_flag_risk),
+    processing_risk: round3(processing_risk),
+    raw_score: round3(raw_score),
+    HFS: round3(HFS),
+    HFS_version: HFS_VERSION_V1
   };
 }
 
@@ -292,7 +492,7 @@ export function calculateHFSScores(params: HFSParameters): HFSCalculatedScores {
  * @param params - HFS v2 input parameters (per 100g)
  * @returns Calculated HFS v2 scores
  */
-export async function calculateHFSV2Scores(params: HFSV2Parameters): Promise<HFSV2CalculatedScores> {
+export async function calculateHFSV2Scores(params: HFSV2Arguments): Promise<HFSV2CalculatedScores> {
   const {
     fiber_g = 0,
     protein_g = 0,
@@ -306,69 +506,139 @@ export async function calculateHFSV2Scores(params: HFSV2Parameters): Promise<HFS
     ingredients_list = []
   } = params;
 
-  // Fibra: S(gramas_fibra, 5)
-  const fibra = S(fiber_g, 5);
+  // net_carbs_g = total_carbs_g − fiber_g
+  const net_carbs_g = carbs_total_g - fiber_g;
 
-  // Proteína bruta: S(gramas_proteina, 10)
-  const proteina_bruta = S(protein_g, 10);
+  // low_net_carbs = 1 − sat(net_carbs_g, 20)
+  const low_net_carbs = 1 - sat(net_carbs_g, 20);
 
-  // Proteína: proteina_bruta * 1
-  const proteina = proteina_bruta * 1;
+  // water_eq = max(0, 100 - (carbs+protein+fat+fiber))
+  const water_eq = Math.max(0, 100 - (carbs_total_g + protein_g + fat_total_g + fiber_g));
 
-  // Baixo carboidrato líquido: 1 - S(carbo_liquido, 20)
-  // onde carbo_liquido = carbo_total - fibra
-  const carbo_liquido = carbs_total_g - fiber_g;
-  const baixo_carbo_liquido = 1 - S(carbo_liquido, 20);
+  // S_fiber = sat(fiber_g, 5)
+  const S_fiber = sat(fiber_g, 5);
 
-  // Baixa densidade energética: 1 - S(kcal, 250)
-  const baixa_densidade = 1 - S(energy_kcal, 250);
+  // protein_raw: use k = 12 if serving_size_value exists, otherwise k = 10
+  const protein_k = params.serving_size_value ? 12 : 10;
+  const protein_raw = sat(protein_g, protein_k);
 
-  // Hidratação
-  // massa_nao_agua = carbo_total + proteina + gordura_total + fibra
-  const massa_nao_agua = carbs_total_g + protein_g + fat_total_g + fiber_g;
-  // agua_eq = max(0, 100 − massa_nao_agua)
-  const agua_eq = Math.max(0, 100 - massa_nao_agua);
-  // F_hidratacao = S(agua_eq, 70) * (1 - S(carb_liq, 25)) * (1 - S(ABV, 2))
-  const F_hidratacao = S(agua_eq, 70) * (1 - S(carbo_liquido, 25)) * (1 - S(abv_percentage, 2));
+  // low_energy_density = 1 − sat(kcal_per_100g, 250)
+  const low_energy_density = 1 - sat(energy_kcal, 250);
 
-  // Novos scores
-  // S_carbo_liquido = S(carbo_liquido + 0.5 * acucar_add, 25)
-  const S_carbo_liquido = S(carbo_liquido + 0.5 * sugars_added_g, 25);
+  // hydration = sat(water_eq, 70) * (1 − sat(net_carbs_g, 25)) * (1 − sat(abv_percentage, 2))
+  const hydration = sat(water_eq, 70) * (1 - sat(net_carbs_g, 25)) * (1 - sat(abv_percentage, 2));
 
-  // S_razao_carb_fibra = S(carbo_total / max(fibra,1), 8)
-  const S_razao_carb_fibra = S(carbs_total_g / Math.max(fiber_g, 1), 8);
+  // 7.5 Ingredientes integrais
+  // Calculate weight of whole ingredients (recognizable, not fractionated, extracted, or refined)
+  let whole_weighted = 0;
+  let matchResult: any = undefined; // Store matchResult for reuse in protein_factor calculation
+  
+  if (ingredients_list && ingredients_list.length > 0) {
+    // Import matchIngredients dynamically to avoid circular dependencies
+    const { matchIngredients } = await import('./ingredient-matcher');
+    matchResult = matchIngredients(ingredients_list);
+    const N = matchResult.results.length;
+    
+    if (N > 0) {
+      for (let j = 0; j < N; j++) {
+        const result = matchResult.results[j];
+        // Get is_whole from the accepted candidate (decision.ingredient_id)
+        let I_whole = 0;
+        
+        if (result.decision.ingredient_id !== undefined) {
+          // Find the candidate with matching ingredient_id
+          const acceptedCandidate = result.candidates.find(
+            (c: any) => c.ingredient_id === result.decision.ingredient_id
+          );
+          
+          if (acceptedCandidate && acceptedCandidate.is_whole !== undefined) {
+            I_whole = acceptedCandidate.is_whole ? 1 : 0;
+          }
+        }
+        
+        // Calculate positional weight (j+1 because w_pos is 1-based)
+        const weight = w_pos(j + 1, N);
+        whole_weighted += weight * I_whole;
+      }
+    }
+  }
+  
+  // whole_ingredients = S(whole_weighted, 0.5)
+  const whole_ingredients = sat(whole_weighted, 0.5);
 
-  // S_gordura_trans = S(gordura_trans, 0.10)
-  const S_gordura_trans = S(trans_fat_g, 0.10);
+  // protein_factor calculation
+  // Check for isolated/concentrated proteins in ingredients
+  let protein_factor = 1.0;
+  
+  if (ingredients_list && ingredients_list.length > 0 && matchResult) {
+    // Reuse matchResult from whole ingredients calculation
+    const N_protein = matchResult.results.length;
+    
+    // Find isolated/concentrated proteins
+    const isolatedProteinIndices: number[] = [];
+    
+    for (let j = 0; j < N_protein; j++) {
+      const result = matchResult.results[j];
+      
+      if (result.decision.ingredient_id !== undefined) {
+        // Find the candidate with matching ingredient_id
+        const acceptedCandidate = result.candidates.find(
+          (c: any) => c.ingredient_id === result.decision.ingredient_id
+        );
+        
+        // Check if "concentrated_protein" is in the categories list
+        if (acceptedCandidate && acceptedCandidate.categories && 
+            Array.isArray(acceptedCandidate.categories) &&
+            acceptedCandidate.categories.includes('concentrated_protein')) {
+          isolatedProteinIndices.push(j);
+        }
+      }
+    }
+    
+    // Calculate sum of positional weights for isolated proteins
+    if (isolatedProteinIndices.length > 0) {
+      let sum_w_pos_isolated = 0;
+      for (const j_isolado of isolatedProteinIndices) {
+        sum_w_pos_isolated += w_pos(j_isolado + 1, N_protein); // j+1 because w_pos is 1-based
+      }
+      
+      // protein_factor = 1.0 - min(0.5, Σ w_pos(j_isolado))
+      protein_factor = 1.0 - Math.min(0.5, sum_w_pos_isolated);
+    }
+  }
 
-  // S_sodio = S(sodio_mg, 400)
-  const S_sodio = S(sodium_mg, 400);
+  // S_protein = protein_raw * protein_factor
+  const S_protein = protein_raw * protein_factor;
+  const B_nutr =
+    0.27 * S_fiber +
+    0.23 * S_protein +
+    0.18 * low_net_carbs +
+    0.12 * low_energy_density +
+    0.10 * whole_ingredients +
+    0.10 * hydration;
 
-  // S_densidade_energetica = S(kcal, 350)
-  const S_densidade_energetica = S(energy_kcal, 350);
-
-  // Aditivos prejudiciais
   // Buscar aditivos na lista de ingredientes e calcular soma de contribuições
   const somaContribuicoes = await calculateHarmfulAdditives(ingredients_list);
-  // aditivos = S(soma_contribuicoes, 0.25)
-  const aditivos = S(somaContribuicoes, 0.25);
 
   // Round all values to 3 decimal places
   const round3 = (value: number) => Math.round(value * 1000) / 1000;
 
-  return {
-    fibra: round3(fibra),
-    proteina_bruta: round3(proteina_bruta),
-    proteina: round3(proteina),
-    baixo_carbo_liquido: round3(baixo_carbo_liquido),
-    baixa_densidade: round3(baixa_densidade),
-    F_hidratacao: round3(F_hidratacao),
-    S_carbo_liquido: round3(S_carbo_liquido),
-    S_razao_carb_fibra: round3(S_razao_carb_fibra),
-    S_gordura_trans: round3(S_gordura_trans),
-    S_sodio: round3(S_sodio),
-    S_densidade_energetica: round3(S_densidade_energetica),
-    aditivos: round3(aditivos)
+  // Prepare return object
+  const result = {
+    S_fiber: round3(S_fiber),
+    protein_Raw: round3(protein_raw),
+    S_protein: round3(S_protein), // S_protein = protein_raw * protein_factor
+    low_net_carbs: round3(low_net_carbs),
+    low_energy_density: round3(low_energy_density),
+    hydration: round3(hydration),
+    whole_ingredients: round3(whole_ingredients),
+    B_nutr: round3(B_nutr),
+    HFS_version: HFS_VERSION_V2
   };
+
+  // Print JSON to terminal
+  console.log(JSON.stringify(result, null, 2));
+
+  return result;
 }
 

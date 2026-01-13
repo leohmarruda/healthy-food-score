@@ -307,27 +307,40 @@ export default function EditFood() {
           });
         }
         
-        // Update formData with edited values
+        // Update formData with edited values - now using direct field names
         Object.keys(editedData).forEach(key => {
-          if (key === 's7') {
-            updateField('NOVA', editedData[key]);
-          } else if (key !== 'density') {
-            // Skip density for now, will update separately
+          if (key !== 'density' && key !== 'abv_percentage') {
             updateField(key as keyof typeof formData, editedData[key]);
           }
         });
         if (editedData.density !== undefined) {
           updateField('density', editedData.density);
         }
+        if (editedData.abv_percentage !== undefined) {
+          updateField('abv_percentage', editedData.abv_percentage);
+        }
         
-        const { calculateHFSScores } = await import('@/utils/hfs-calculations');
-        // Include abv_percentage from formData if not in editedData
+        const { calculateHFSV1Scores } = await import('@/utils/hfs-calculations');
+        // Use direct field names from editedData
         const scoresForCalculation = {
-          ...editedData,
-          abv_percentage: editedData.abv_percentage !== undefined ? editedData.abv_percentage : (formData.abv_percentage || 0),
+          energy_kcal: editedData.energy_kcal ?? formData.energy_kcal ?? 0,
+          fiber_g: editedData.fiber_g ?? formData.fiber_g ?? 0,
+          sugars_added_g: editedData.sugars_added_g ?? formData.sugars_added_g ?? 0,
+          sugars_total_g: editedData.sugars_total_g ?? formData.sugars_total_g ?? 0,
+          total_fat_g: editedData.fat_total_g ?? formData.fat_total_g ?? 0,
+          saturated_fat_g: editedData.saturated_fat_g ?? formData.saturated_fat_g ?? 0,
+          trans_fat_g: editedData.trans_fat_g ?? formData.trans_fat_g ?? 0,
+          sodium_mg: editedData.sodium_mg ?? formData.sodium_mg ?? 0,
+          protein_g: editedData.protein_g ?? formData.protein_g ?? 0,
+          NOVA: editedData.NOVA ?? formData.NOVA ?? 0,
+          n_ing: editedData.n_ing ?? 0,
+          ABV_percentage: editedData.abv_percentage !== undefined ? editedData.abv_percentage : (formData.abv_percentage || 0),
+          density_g_ml: editedData.density ?? formData.density,
+          serving_size_g: editedData.serving_size_value ?? formData.serving_size_value ?? 100,
+          is_liquid: (editedData.density ?? formData.density) != null,
         };
-        const calculatedScores = calculateHFSScores(scoresForCalculation);
-        const hfsv1Score = calculatedScores.HFSv1;
+        const calculatedScores = calculateHFSV1Scores(scoresForCalculation);
+        const hfsv1Score = calculatedScores.HFS;
         // Use the same updatedFormData that was validated
         const result = await saveFood(updatedFormData, hfsv1Score, 'v1');
         if (result?.scores) {
@@ -549,17 +562,26 @@ export default function EditFood() {
         version={selectedHfsVersion}
         scores={hfsScores || {}}
         formData={{
+          product_name: formData.product_name,
+          brand: formData.brand,
           ingredients_list: formData.ingredients_list,
           energy_kcal: formData.energy_kcal,
           carbs_total_g: formData.carbs_total_g,
           protein_g: formData.protein_g,
           sodium_mg: formData.sodium_mg,
           fiber_g: formData.fiber_g,
+          fat_total_g: formData.fat_total_g,
           saturated_fat_g: formData.saturated_fat_g,
           trans_fat_g: formData.trans_fat_g,
+          sugars_added_g: formData.sugars_added_g,
+          sugars_total_g: formData.sugars_total_g,
+          NOVA: formData.NOVA,
+          n_ing: formData.ingredients_list?.length || 0,
           abv_percentage: formData.abv_percentage,
           declared_processes: formData.declared_processes,
           declared_special_nutrients: formData.declared_special_nutrients,
+          certifications: formData.certifications,
+          location: formData.location,
           serving_size_value: formData.serving_size_value,
           density: formData.density,
         }}

@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { calculateHFSScores, calculateHFSV2Scores } from '@/utils/hfs-calculations';
+import { calculateHFSV1Scores, calculateHFSV2Scores } from '@/utils/hfs-calculations';
 import { normalizeScores } from '@/utils/hfs-helpers';
 
 interface HFSScoresModalProps {
@@ -68,12 +68,26 @@ export default function HFSScoresModal({
         } else {
           // Scores are already in 100g format - normalize and calculate
           const normalizedScores = normalizeScores(scores);
-          // Include abv_percentage from formData if available
+          // Convert old format (s1a, s1b, etc.) to new format
+          const sugars_total_g = (normalizedScores.s1a || 0) + (normalizedScores.s1b || 0);
           const scoresWithABV = {
-            ...normalizedScores,
-            abv_percentage: formData?.abv_percentage || 0,
+            energy_kcal: normalizedScores.s4 ?? (formData?.energy_kcal ?? 0),
+            fiber_g: normalizedScores.s2 ?? (formData?.fiber_g ?? 0),
+            sugars_added_g: normalizedScores.s1a ?? (formData?.sugars_added_g ?? 0),
+            sugars_total_g: sugars_total_g > 0 ? sugars_total_g : 0,
+            total_fat_g: formData?.fat_total_g ?? 0,
+            saturated_fat_g: normalizedScores.s3a ?? 0,
+            trans_fat_g: normalizedScores.s3b ?? (formData?.trans_fat_g ?? 0),
+            sodium_mg: normalizedScores.s6 ?? (formData?.sodium_mg ?? 0),
+            protein_g: normalizedScores.s5 ?? (formData?.protein_g ?? 0),
+            NOVA: normalizedScores.s7 ?? 0,
+            n_ing: normalizedScores.s8 ?? 0,
+            ABV_percentage: formData?.abv_percentage || 0,
+            density_g_ml: undefined,
+            serving_size_g: undefined,
+            is_liquid: false,
           };
-          const calculated = calculateHFSScores(scoresWithABV);
+          const calculated = calculateHFSV1Scores(scoresWithABV);
           setCalculatedScores(calculated);
         }
       } catch (error) {
@@ -90,12 +104,12 @@ export default function HFSScoresModal({
   if (!isOpen) return null;
 
   const scoreLabels = isV2 ? [
-    { key: 'fibra', label: t.v2FibraLabel || 'Fibra', value: calculatedScores.fibra },
-    { key: 'proteina_bruta', label: t.v2ProteinaBrutaLabel || 'Proteína bruta', value: calculatedScores.proteina_bruta },
-    { key: 'proteina', label: t.v2ProteinaLabel || 'Proteína', value: calculatedScores.proteina },
-    { key: 'baixo_carbo_liquido', label: t.v2BaixoCarboLiquidoLabel || 'Baixo carboidrato líquido', value: calculatedScores.baixo_carbo_liquido },
-    { key: 'baixa_densidade', label: t.v2BaixaDensidadeLabel || 'Baixa densidade energética', value: calculatedScores.baixa_densidade },
-    { key: 'F_hidratacao', label: t.v2HidratacaoLabel || 'Hidratação', value: calculatedScores.F_hidratacao },
+    { key: 'S_fiber', label: t.v2FibraLabel || 'Fibra', value: calculatedScores.S_fiber },
+    { key: 'protein_Raw', label: t.v2ProteinaBrutaLabel || 'Proteína bruta', value: calculatedScores.protein_Raw },
+    { key: 'S_protein', label: t.v2ProteinaLabel || 'Proteína', value: calculatedScores.S_protein },
+    { key: 'low_net_carbs', label: t.v2BaixoCarboLiquidoLabel || 'Baixo carboidrato líquido', value: calculatedScores.low_net_carbs },
+    { key: 'low_energy_density', label: t.v2BaixaDensidadeLabel || 'Baixa densidade energética', value: calculatedScores.low_energy_density },
+    { key: 'hydration', label: t.v2HidratacaoLabel || 'Hidratação', value: calculatedScores.hydration },
     { key: 'S_carbo_liquido', label: t.v2SCarboLiquidoLabel || 'S: Carboidrato líquido', value: calculatedScores.S_carbo_liquido },
     { key: 'S_razao_carb_fibra', label: t.v2SRazaoCarbFibraLabel || 'S: Razão carboidrato/fibra', value: calculatedScores.S_razao_carb_fibra },
     { key: 'S_gordura_trans', label: t.v2SGorduraTransLabel || 'S: Gordura trans', value: calculatedScores.S_gordura_trans },
@@ -103,19 +117,12 @@ export default function HFSScoresModal({
     { key: 'S_densidade_energetica', label: t.v2SDensidadeEnergeticaLabel || 'S: Densidade energética', value: calculatedScores.S_densidade_energetica },
     { key: 'aditivos', label: t.v2AditivosLabel || 'Aditivos prejudiciais', value: calculatedScores.aditivos },
   ] : [
-    { key: 'S1', label: t.S1Label || 'S1: Açúcares', value: calculatedScores.S1 },
-    { key: 'S2', label: t.S2Label || 'S2: Fibras', value: calculatedScores.S2 },
-    { key: 'S3', label: t.S3Label || 'S3: Gorduras prejudiciais', value: calculatedScores.S3 },
-    { key: 'S4', label: t.S4Label || 'S4: Densidade calórica', value: calculatedScores.S4 },
-    { key: 'S5', label: t.S5Label || 'S5: Proteínas', value: calculatedScores.S5 },
-    { key: 'S6', label: t.S6Label || 'S6: Sódio', value: calculatedScores.S6 },
-    { key: 'S7', label: t.S7Label || 'S7: Grau de processamento (NOVA)', value: calculatedScores.S7 },
-    { key: 'S8', label: t.S8Label || 'S8: Aditivos artificiais', value: calculatedScores.S8 },
-    { key: 'S9', label: t.S9Label || 'S9: Álcool', value: calculatedScores.S9 },
-    { key: 'N', label: t.NLabel || 'N: Valor nutricional', value: calculatedScores.N },
-    { key: 'M', label: t.MLabel || 'M: Risco metabólico', value: calculatedScores.M },
-    { key: 'P', label: t.PLabel || 'P: Fator prejudicial', value: calculatedScores.P },
-    { key: 'R', label: t.RLabel || 'R: Risco estrutural', value: calculatedScores.R },
+    { key: 'benefits', label: t.benefitsLabel || 'B: Benefícios agregados', value: calculatedScores.benefits },
+    { key: 'metabolic_risk', label: t.metabolicRiskLabel || 'M: Risco metabólico', value: calculatedScores.metabolic_risk },
+    { key: 'behavioral_risk', label: t.behavioralRiskLabel || 'R: Risco comportamental', value: calculatedScores.behavioral_risk },
+    { key: 'red_flag_risk', label: t.redFlagRiskLabel || 'P: Risco de bandeira vermelha', value: calculatedScores.red_flag_risk },
+    { key: 'processing_risk', label: t.processingRiskLabel || 'S: Risco de processamento', value: calculatedScores.processing_risk },
+    { key: 'raw_score', label: t.rawScoreLabel || 'Raw Score: Score bruto', value: calculatedScores.raw_score },
   ];
 
   const formatScore = (score: number | undefined | null | any, key?: string) => {
@@ -151,14 +158,14 @@ export default function HFSScoresModal({
             </h3>
           </div>
 
-          {!isV2 && calculatedScores.HFSv1 !== undefined && calculatedScores.HFSv1 !== null && (
+          {!isV2 && calculatedScores.HFS !== undefined && calculatedScores.HFS !== null && (
             <div className="mb-3 p-3 bg-primary/10 border-2 border-primary/20 rounded-theme">
               <div className="flex items-center justify-between">
                 <span className="text-base font-bold text-text-main">
                   {t.HFSv1Label || 'HFSv1.0'}
                 </span>
-                <span className={`text-2xl font-black ${getScoreColor(calculatedScores.HFSv1)}`}>
-                  {formatScore(calculatedScores.HFSv1)}
+                <span className={`text-2xl font-black ${getScoreColor(calculatedScores.HFS)}`}>
+                  {formatScore(calculatedScores.HFS)}
                 </span>
               </div>
             </div>

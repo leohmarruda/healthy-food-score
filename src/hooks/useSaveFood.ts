@@ -19,6 +19,8 @@ const NUMERIC_FIELDS: (keyof FoodFormData)[] = [
   'fiber_g',
   'saturated_fat_g',
   'trans_fat_g',
+  'sugars_total_g',
+  'sugars_added_g',
   'serving_size_value',
   'price',
   'abv_percentage',
@@ -72,25 +74,34 @@ export function useSaveFood(foodId: string, dict: any, onSuccess?: () => void) {
         if (version === 'v1') {
           // For v1, calculate scores and update/add v1 in the JSON
           if (hfsv1Score !== undefined && hfsv1Score !== null) {
-            const { calculateHFSScores } = await import('@/utils/hfs-calculations');
-            const calculatedScores = calculateHFSScores({
-              s1a: formData.s1a || 0,
-              s1b: formData.s1b || 0,
-              s2: formData.s2 || 0,
-              s3a: formData.s3a || 0,
-              s3b: formData.s3b || 0,
-              s4: formData.s4 || 0,
-              s5: formData.s5 || 0,
-              s6: formData.s6 || 0,
-              s7: formData.s7 || 0,
-              s8: formData.s8 || 0,
-              abv_percentage: formData.abv_percentage || 0,
+            const { calculateHFSV1Scores } = await import('@/utils/hfs-calculations');
+            // Calculate total sugars if not provided
+            // Try formData.sugars_total_g first, then s1a + s1b, then sugars_added_g (assuming natural = 0)
+            const sugars_total_g = formData.sugars_total_g ?? 
+              (((formData.s1a || 0) + (formData.s1b || 0)) || 
+              (formData.sugars_added_g || 0));
+            const calculatedScores = calculateHFSV1Scores({
+              energy_kcal: formData.energy_kcal ?? formData.s4 ?? 0,
+              fiber_g: formData.fiber_g ?? formData.s2 ?? 0,
+              sugars_added_g: formData.sugars_added_g ?? formData.s1a ?? 0,
+              sugars_total_g: sugars_total_g,
+              total_fat_g: formData.fat_total_g ?? 0,
+              saturated_fat_g: formData.saturated_fat_g ?? formData.s3a ?? 0,
+              trans_fat_g: formData.trans_fat_g ?? formData.s3b ?? 0,
+              sodium_mg: formData.sodium_mg ?? formData.s6 ?? 0,
+              protein_g: formData.protein_g ?? formData.s5 ?? 0,
+              NOVA: formData.NOVA ?? formData.s7 ?? 0,
+              n_ing: formData.s8 ?? 0, // Count of additives
+              ABV_percentage: formData.abv_percentage ?? 0,
+              density_g_ml: formData.density,
+              serving_size_g: formData.serving_size_value,
+              is_liquid: formData.density != null,
             });
             // Update/add v1, preserving v2 if it exists
             hfsScoreJson = {
               ...hfsScoreJson,
               v1: {
-                HFSv1: hfsv1Score,
+                HFSv1: calculatedScores.HFS, // Keep HFSv1 for backward compatibility
                 ...calculatedScores
               }
             };

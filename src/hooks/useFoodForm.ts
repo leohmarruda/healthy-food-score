@@ -19,6 +19,8 @@ const initialState: FoodFormData = {
   fiber_g: 0,
   saturated_fat_g: 0,
   trans_fat_g: 0,
+  sugars_total_g: 0,
+  sugars_added_g: 0,
   serving_size_value: 0,
   serving_size_unit: 'g',
   ingredients_list: [],

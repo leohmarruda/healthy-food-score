@@ -107,12 +107,24 @@ export function extractHFSScore(hfsScore: any): { score: number; version: string
   // Check v2 first (highest version)
   if (hfsScore.v2) {
     // For v2, use hfs_score from the JSON (mock value 0)
-    return { score: hfsScore.v2.hfs_score !== undefined ? hfsScore.v2.hfs_score : 0, version: 'v2' };
+    const score = hfsScore.v2.hfs_score !== undefined ? hfsScore.v2.hfs_score : 0;
+    // Use HFS_version if available, otherwise default to 'v2'
+    const version = hfsScore.v2.HFS_version || 'v2';
+    return { score, version };
   }
   
   // Fallback to v1 if v2 doesn't exist
+  if (hfsScore.v1?.HFS !== undefined) {
+    const score = hfsScore.v1.HFS;
+    // Use HFS_version if available, otherwise default to 'v1'
+    const version = hfsScore.v1.HFS_version || 'v1';
+    return { score, version };
+  }
   if (hfsScore.v1?.HFSv1 !== undefined) {
-    return { score: hfsScore.v1.HFSv1, version: 'v1' };
+    const score = hfsScore.v1.HFSv1;
+    // Use HFS_version if available, otherwise default to 'v1'
+    const version = hfsScore.v1.HFS_version || 'v1';
+    return { score, version };
   }
   
   return { score: -1, version: 'v2' };

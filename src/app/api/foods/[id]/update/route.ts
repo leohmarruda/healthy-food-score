@@ -25,6 +25,8 @@ export async function PATCH(
         fiber_g: body.fiber_g,
         saturated_fat_g: body.saturated_fat_g,
         trans_fat_g: body.trans_fat_g,
+        sugars_total_g: body.sugars_total_g,
+        sugars_added_g: body.sugars_added_g,
         serving_size_value: body.serving_size_value,
         serving_size_unit: body.serving_size_unit,
         ingredients_list: body.ingredients_list, 

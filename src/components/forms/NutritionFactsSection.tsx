@@ -25,12 +25,15 @@ const NUTRITION_FIELDS = [
   { labelKey: 'serving', field: 'serving_size_value', type: 'number' as const, unit: '', step: '1' },
   { labelKey: 'unit', field: 'serving_size_unit', type: 'text' as const, unit: '' },
   { labelKey: 'calories', field: 'energy_kcal', type: 'number' as const, unit: '(kcal)', step: '1' },
-  { labelKey: 'protein', field: 'protein_g', type: 'number' as const, unit: '(g)', step: '0.1' },
   { labelKey: 'carbs', field: 'carbs_total_g', type: 'number' as const, unit: '(g)', step: '0.1' },
-  { labelKey: 'fat', field: 'fat_total_g', type: 'number' as const, unit: '(g)', step: '0.1' },
-  { labelKey: 'sodium', field: 'sodium_mg', type: 'number' as const, unit: '(mg)', step: '1' },
+  { labelKey: 'sugarsTotal', field: 'sugars_total_g', type: 'number' as const, unit: '(g)', step: '0.1' },
+  { labelKey: 'sugarsAdded', field: 'sugars_added_g', type: 'number' as const, unit: '(g)', step: '0.1' },
   { labelKey: 'fiber', field: 'fiber_g', type: 'number' as const, unit: '(g)', step: '0.1' },
-  { labelKey: 'saturatedFat', field: 'saturated_fat_g', type: 'number' as const, unit: '(g)', step: '0.1' }
+  { labelKey: 'fat', field: 'fat_total_g', type: 'number' as const, unit: '(g)', step: '0.1' },
+  { labelKey: 'saturatedFat', field: 'saturated_fat_g', type: 'number' as const, unit: '(g)', step: '0.1' },
+  { labelKey: 'transFat', field: 'trans_fat_g', type: 'number' as const, unit: '(g)', step: '0.1' },
+  { labelKey: 'protein', field: 'protein_g', type: 'number' as const, unit: '(g)', step: '0.1' },
+  { labelKey: 'sodium', field: 'sodium_mg', type: 'number' as const, unit: '(mg)', step: '1' }
 ];
 
 /**
@@ -60,6 +63,10 @@ export default function NutritionFactsSection({
           const label = unit ? `${baseLabel} ${unit}` : baseLabel;
           
           if (type === 'number') {
+            // NOVA should not have default value 0, all other numeric fields should
+            const hasDefaultZero = field !== 'NOVA';
+            const currentValue = formData[field as keyof FoodFormData] as string | number;
+            const isEmpty = currentValue === undefined || currentValue === null || currentValue === '' || currentValue === 0;
             return (
               <NumericField
                 key={field}
@@ -71,6 +78,8 @@ export default function NutritionFactsSection({
                 locked={isLocked?.(field)}
                 onToggleLock={onToggleLock ? () => onToggleLock(field) : undefined}
                 dict={dict}
+                defaultValue={hasDefaultZero && isEmpty ? 0 : undefined}
+                showDefaultAsItalic={hasDefaultZero && isEmpty}
               />
             );
           }
@@ -180,18 +189,6 @@ export default function NutritionFactsSection({
               showDefaultAsItalic={true}
               locked={isLocked?.('density')}
               onToggleLock={onToggleLock ? () => onToggleLock('density') : undefined}
-              onFieldError={onFieldError}
-              dict={dict}
-            />
-            {/* Net Content */}
-            <NumericField
-              label={`${dict?.pages?.edit?.labelNetContent || 'Conteúdo Líquido'} (g/ml)`}
-              name="net_content_g_ml"
-              value={formData.net_content_g_ml ?? ''}
-              onChange={(value) => onChange('net_content_g_ml', value)}
-              step="0.01"
-              locked={isLocked?.('net_content_g_ml')}
-              onToggleLock={onToggleLock ? () => onToggleLock('net_content_g_ml') : undefined}
               onFieldError={onFieldError}
               dict={dict}
             />

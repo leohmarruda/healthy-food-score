@@ -38,6 +38,9 @@ export function preserveOtherVersions(
  * Extract numeric score from hfs_score JSON
  */
 export function extractNumericScore(hfsScoreJson: any): number {
+  if (hfsScoreJson?.v1?.HFS !== undefined) {
+    return hfsScoreJson.v1.HFS;
+  }
   if (hfsScoreJson?.v1?.HFSv1 !== undefined) {
     return hfsScoreJson.v1.HFSv1;
   }
@@ -60,5 +63,6 @@ export function normalizeScores(scores: Record<string, any>): Record<string, num
   
   return normalized;
 }
+
 
 

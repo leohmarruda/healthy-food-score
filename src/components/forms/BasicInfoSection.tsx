@@ -101,13 +101,13 @@ export default function BasicInfoSection({
           dict={dict}
         />
         <NumericField
-          label={dict?.pages?.edit?.labelPrice || 'Price'}
-          name="price"
-          value={formData.price !== undefined && formData.price !== null ? formData.price : ''}
-          onChange={(value) => onChange('price', value)}
+          label={`${dict?.pages?.edit?.labelNetContent || 'Conteúdo Líquido'} (g ou ml)`}
+          name="net_content_g_ml"
+          value={formData.net_content_g_ml ?? ''}
+          onChange={(value) => onChange('net_content_g_ml', value)}
           step="0.01"
-          locked={isLocked?.('price')}
-          onToggleLock={onToggleLock ? () => onToggleLock('price') : undefined}
+          locked={isLocked?.('net_content_g_ml')}
+          onToggleLock={onToggleLock ? () => onToggleLock('net_content_g_ml') : undefined}
           onFieldError={onFieldError}
           dict={dict}
         />
@@ -139,6 +139,17 @@ export default function BasicInfoSection({
             </label>
           </div>
         </div>
+        <NumericField
+          label={dict?.pages?.edit?.labelPrice || 'Price'}
+          name="price"
+          value={formData.price !== undefined && formData.price !== null ? formData.price : ''}
+          onChange={(value) => onChange('price', value)}
+          step="0.01"
+          locked={isLocked?.('price')}
+          onToggleLock={onToggleLock ? () => onToggleLock('price') : undefined}
+          onFieldError={onFieldError}
+          dict={dict}
+        />
       </div>
     </section>
   );

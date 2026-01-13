@@ -17,20 +17,31 @@ interface HFSInputModalProps {
     s6?: number; // Sódio (mg)
     s7?: number; // Grau de processamento (NOVA)
     s8?: number; // Aditivos artificiais (lista)
+    s9?: number; // ABV - Alcohol by Volume (%)
     density?: number; // Density (g/ml)
   };
   formData?: {
+    product_name?: string;
+    brand?: string;
+    net_content_g_ml?: number;
     ingredients_list?: string[];
     energy_kcal?: number;
     carbs_total_g?: number;
     protein_g?: number;
     sodium_mg?: number;
     fiber_g?: number;
+    fat_total_g?: number;
     saturated_fat_g?: number;
     trans_fat_g?: number;
+    sugars_added_g?: number;
+    sugars_total_g?: number;
+    NOVA?: number;
+    n_ing?: number;
     abv_percentage?: number;
     declared_processes?: string;
     declared_special_nutrients?: string;
+    certifications?: string;
+    location?: string;
     serving_size_value?: number;
     serving_size_unit?: string;
     density?: number;
@@ -83,7 +94,7 @@ export default function HFSInputModal({
       if (isV2) {
         setFormData(prev => ({ ...prev, abv_percentage: undefined, density: undefined }));
       } else {
-        setScores(prev => ({ ...prev, density: undefined }));
+        setScores(prev => ({ ...prev, s9: undefined, density: undefined }));
       }
     }
   };
@@ -98,7 +109,7 @@ export default function HFSInputModal({
     if (!isOpen) return;
     
     if (isV2) {
-      const nutrientFields = ['energy_kcal', 'carbs_total_g', 'protein_g', 'sodium_mg', 'fiber_g', 'saturated_fat_g', 'trans_fat_g'];
+      const nutrientFields = ['energy_kcal', 'carbs_total_g', 'protein_g', 'sodium_mg', 'fiber_g', 'fat_total_g', 'saturated_fat_g', 'trans_fat_g', 'sugars_added_g'];
       // Extract only numeric fields for conversion
       const numericData: Record<string, number | null | undefined> = {};
       nutrientFields.forEach(field => {
@@ -107,38 +118,45 @@ export default function HFSInputModal({
       const converted = convertNutrientsTo100g(numericData, nutrientFields, conversionParams);
       setFormData({ ...initialFormData, ...converted });
     } else {
-      const convertedScores: any = { ...initialScores };
-      if (density !== undefined && density !== null) {
-        convertedScores.density = convertedScores.density ?? density;
-      } else {
-        // Default density to 1.0 if not provided
-        convertedScores.density = 1.0;
-      }
-      setScores(convertedScores);
+      // For v1, use formData directly with all fields
+      const v1Fields = ['serving_size_value', 'energy_kcal', 'carbs_total_g', 'sugars_total_g', 'sugars_added_g', 
+                         'fiber_g', 'fat_total_g', 'saturated_fat_g', 'trans_fat_g', 'protein_g', 'sodium_mg', 'NOVA', 'n_ing'];
+      const numericData: Record<string, number | null | undefined> = {};
+      v1Fields.forEach(field => {
+        numericData[field] = initialFormData?.[field as keyof typeof initialFormData] as number | undefined;
+      });
+      // Also include abv_percentage and density
+      numericData['abv_percentage'] = initialFormData?.abv_percentage;
+      numericData['density'] = density ?? initialFormData?.density ?? 1.0;
+      setFormData({ ...initialFormData, ...numericData });
     }
   }, [isOpen, initialScores, initialFormData, isV2, density, servingSize, servingUnit]);
 
   if (!isOpen) return null;
 
-  // V1 fields (original) - density removed, will be shown conditionally
+  // V1 fields - using direct field names in the order specified in hfs-calculations.ts
   const v1Fields = [
-    { key: 's1a', description: t.s1aDescription || 'Açúcares adicionados', unit: 'g', type: 'number' },
-    { key: 's1b', description: t.s1bDescription || 'Açúcares naturais', unit: 'g', type: 'number' },
-    { key: 's2', description: t.s2Description || 'Fibras', unit: 'g', type: 'number' },
-    { key: 's3a', description: t.s3aDescription || 'Gordura Saturada', unit: 'g', type: 'number' },
-    { key: 's3b', description: t.s3bDescription || 'Gordura Trans', unit: 'g', type: 'number' },
-    { key: 's4', description: t.s4Description || 'Densidade calórica', unit: 'kcal', type: 'number' },
-    { key: 's5', description: t.s5Description || 'Proteína', unit: 'g', type: 'number' },
-    { key: 's6', description: t.s6Description || 'Sódio', unit: 'mg', type: 'number' },
-    { key: 's7', description: t.s7Description || 'Grau de processamento (NOVA)', unit: '', type: 'number' },
-    { key: 's8', description: t.s8Description || 'Aditivos artificiais', unit: '', type: 'number' },
+    { key: 'serving_size_value', description: dict?.components?.nutritionLabel?.serving || 'Tamanho da Porção', unit: 'g', type: 'number' },
+    { key: 'energy_kcal', description: dict?.components?.nutritionLabel?.calories || 'Energia', unit: 'kcal', type: 'number' },
+    { key: 'carbs_total_g', description: dict?.components?.nutritionLabel?.carbs || 'Carboidratos totais', unit: 'g', type: 'number' },
+    { key: 'sugars_total_g', description: dict?.components?.nutritionLabel?.sugarsTotal || 'Açúcares totais', unit: 'g', type: 'number' },
+    { key: 'sugars_added_g', description: dict?.components?.nutritionLabel?.sugarsAdded || 'Açúcares adicionados', unit: 'g', type: 'number' },
+    { key: 'fiber_g', description: dict?.components?.nutritionLabel?.fiber || 'Fibras', unit: 'g', type: 'number' },
+    { key: 'fat_total_g', description: dict?.components?.nutritionLabel?.fat || 'Gorduras Totais', unit: 'g', type: 'number' },
+    { key: 'saturated_fat_g', description: dict?.components?.nutritionLabel?.saturatedFat || 'Gordura Saturada', unit: 'g', type: 'number' },
+    { key: 'trans_fat_g', description: dict?.components?.nutritionLabel?.transFat || 'Gordura Trans', unit: 'g', type: 'number' },
+    { key: 'protein_g', description: dict?.components?.nutritionLabel?.protein || 'Proteína', unit: 'g', type: 'number' },
+    { key: 'sodium_mg', description: dict?.components?.nutritionLabel?.sodium || 'Sódio', unit: 'mg', type: 'number' },
+    { key: 'NOVA', description: t.s7Description || 'Grau de processamento (NOVA)', unit: '', type: 'number' },
+    { key: 'n_ing', description: t.nIngredientsLabel || 'Número de Ingredientes', unit: '', type: 'number' },
   ].map(field => ({
     ...field,
-    label: `${field.key}: ${field.description}${field.unit ? ` (${field.unit})` : ''}`
+    label: `${field.description}${field.unit ? ` (${field.unit})` : ''}`
   }));
 
   // V1 liquid fields (shown when isLiquid is true)
   const v1LiquidFields = [
+    { key: 'abv_percentage', description: t.s9Description || 'ABV - Teor Alcoólico', unit: '%', type: 'number' },
     { key: 'density', description: t.densityDescription || 'Densidade', unit: 'g/ml', type: 'number' },
   ].map(field => ({
     ...field,
@@ -156,11 +174,20 @@ export default function HFSInputModal({
   // Fields that go right after ingredients list
   const v2SpecialFields = [
     { key: 'serving_size_value', description: t.v2ServingSize || 'Tamanho da Porção', unit: 'g', type: 'number' as const },
-    { key: 'declared_processes', description: t.v2DeclaredProcesses || 'Processos declarados', type: 'text' as const },
-    { key: 'declared_special_nutrients', description: t.v2DeclaredSpecialNutrients || 'Nutrientes especiais declarados', type: 'text' as const },
+    { key: 'location', description: dict?.pages?.edit?.labelLocation || 'Localização', type: 'text' as const, isTextArea: false },
   ].map(field => ({
     ...field,
     label: `${field.description}${field.unit ? ` (${field.unit})` : ''}`
+  }));
+
+  // Declaration fields - shown in "DECLARAÇÕES DA EMBALAGEM" section
+  const v2DeclarationFields = [
+    { key: 'declared_processes', description: t.v2DeclaredProcesses || 'Processos declarados', type: 'text' as const, isTextArea: true },
+    { key: 'declared_special_nutrients', description: t.v2DeclaredSpecialNutrients || 'Nutrientes especiais declarados', type: 'text' as const, isTextArea: true },
+    { key: 'certifications', description: dict?.pages?.edit?.labelCertifications || 'Certificações', type: 'text' as const, isTextArea: true },
+  ].map(field => ({
+    ...field,
+    label: field.description
   }));
 
   // Nutrient fields (after subtitle) - abv_percentage removed, will be shown conditionally
@@ -170,8 +197,10 @@ export default function HFSInputModal({
     { key: 'protein_g', description: t.v2Protein || 'Proteínas', unit: 'g', type: 'number' as const },
     { key: 'sodium_mg', description: t.v2Sodium || 'Sódio', unit: 'mg', type: 'number' as const },
     { key: 'fiber_g', description: t.v2Fiber || 'Fibra alimentar', unit: 'g', type: 'number' as const },
+    { key: 'fat_total_g', description: t.v2TotalFat || 'Gordura total', unit: 'g', type: 'number' as const },
     { key: 'saturated_fat_g', description: t.v2SaturatedFat || 'Gordura saturada', unit: 'g', type: 'number' as const },
     { key: 'trans_fat_g', description: t.v2TransFat || 'Gordura trans', unit: 'g', type: 'number' as const },
+    { key: 'sugars_added_g', description: t.v2AddedSugars || 'Açúcar adicionado', unit: 'g', type: 'number' as const },
   ].map(field => ({
     ...field,
     label: `${field.description}${field.unit ? ` (${field.unit})` : ''}`
@@ -186,18 +215,28 @@ export default function HFSInputModal({
     label: `${field.description}${field.unit ? ` (${field.unit})` : ''}`
   }));
 
-  const fields = isV2 ? [...v2NutrientFields] : v1Fields;
+  const fields = isV2 ? [...v2NutrientFields] : [...v1Fields];
 
   const handleChange = (key: string, value: string) => {
+    // Handle text fields (product_name, brand)
+    if (key === 'product_name' || key === 'brand') {
+      setFormData(prev => ({
+        ...prev,
+        [key]: value || undefined
+      }));
+      return;
+    }
+    
     if (isV2) {
       if (key === 'ingredients_list') {
-        // Split by comma and trim
-        const list = value.split(',').map(item => item.trim()).filter(Boolean);
+        // For V2, store as string but convert to array for formData compatibility
+        // The textarea will display/edit as string, but we'll convert to array when needed
+        const list = value ? value.split(',').map(item => item.trim()).filter(Boolean) : [];
         setFormData(prev => ({
           ...prev,
-          [key]: list
+          [key]: list.length > 0 ? list : undefined
         }));
-      } else if (key === 'declared_processes' || key === 'declared_special_nutrients') {
+      } else if (key === 'declared_processes' || key === 'declared_special_nutrients' || key === 'certifications' || key === 'location') {
         // Text fields - remove "(nenhum)" if user starts typing
         const cleanValue = value === (t.none || '(nenhum)') ? '' : value;
         setFormData(prev => ({
@@ -213,16 +252,24 @@ export default function HFSInputModal({
         }));
       }
     } else {
-      // For s7 (NOVA), parse as integer; for others, parse as float
-      if (key === 's7') {
+      // For v1, use formData directly
+      if (key === 'ingredients_list') {
+        // Split by comma and trim
+        const list = value.split(',').map(item => item.trim()).filter(Boolean);
+        setFormData(prev => ({
+          ...prev,
+          [key]: list
+        }));
+      } else if (key === 'NOVA' || key === 'n_ing') {
+        // For NOVA and n_ing, parse as integer
         const intValue = value === '' ? undefined : parseInt(value, 10);
-        setScores(prev => ({
+        setFormData(prev => ({
           ...prev,
           [key]: isNaN(intValue as number) ? undefined : intValue
         }));
       } else {
         const numValue = value === '' ? undefined : parseFloat(value);
-        setScores(prev => ({
+        setFormData(prev => ({
           ...prev,
           [key]: isNaN(numValue as number) ? undefined : numValue
         }));
@@ -232,14 +279,19 @@ export default function HFSInputModal({
 
   const handleConfirm = () => {
     if (isV2) {
-      const nutrientFields = ['energy_kcal', 'carbs_total_g', 'protein_g', 'sodium_mg', 'fiber_g', 'saturated_fat_g', 'trans_fat_g'];
+      const nutrientFields = ['energy_kcal', 'carbs_total_g', 'protein_g', 'sodium_mg', 'fiber_g', 'fat_total_g', 'saturated_fat_g', 'trans_fat_g', 'sugars_added_g'];
       // Extract only numeric fields for conversion
       const numericData: Record<string, number | null | undefined> = {};
       nutrientFields.forEach(field => {
         numericData[field] = formData[field as keyof typeof formData] as number | undefined;
       });
       const converted = convertNutrientsFrom100g(numericData, nutrientFields, conversionParams); 
-      const result = { ...formData, ...converted };
+      const result = { 
+        ...formData, 
+        ...converted,
+        product_name: formData.product_name,
+        brand: formData.brand
+      };
       // Include ABV and density if isLiquid is true, otherwise set to null
       if (isLiquid) {
         result.abv_percentage = formData.abv_percentage ?? 0;
@@ -250,28 +302,29 @@ export default function HFSInputModal({
       }
       onConfirm(result);
     } else {
-      const scoreFields = ['s1a', 's1b', 's2', 's3a', 's3b', 's4', 's5', 's6', 's7', 's8'];
-      const result: any = {};
-      scoreFields.forEach(field => {
-        const value = scores[field as keyof typeof scores];
-        // For s7 (NOVA), ensure it's an integer if provided (including 0)
-        if (field === 's7') {
-          if (value !== undefined && value !== null) {
-            result[field] = Math.round(value);
-          } else {
-            // If s7 is undefined/null, don't include it (or set to undefined)
-            result[field] = undefined;
-          }
+      // For v1, return formData directly with all fields
+      const v1Fields = ['serving_size_value', 'energy_kcal', 'carbs_total_g', 'sugars_total_g', 'sugars_added_g',
+                        'fiber_g', 'fat_total_g', 'saturated_fat_g', 'trans_fat_g', 'protein_g', 'sodium_mg', 'NOVA', 'n_ing'];
+      const result: any = {
+        product_name: formData.product_name,
+        brand: formData.brand,
+        ingredients_list: formData.ingredients_list
+      };
+      v1Fields.forEach(field => {
+        const value = formData[field as keyof typeof formData];
+        // For NOVA and n_ing, ensure they're integers if provided
+        if (field === 'NOVA' || field === 'n_ing') {
+          result[field] = value !== undefined && value !== null ? Math.round(value as number) : undefined;
         } else {
-          // For other fields, use the value or 0 if undefined/null
           result[field] = value !== undefined && value !== null ? value : 0;
         }
       });
-      // Include density if isLiquid is true, otherwise set to null
+      // Include abv_percentage and density if isLiquid is true, otherwise set to null
       if (isLiquid) {
-        const densityValue = scores.density ?? density ?? 1.0;
-        result.density = densityValue || 1.0;
+        result.abv_percentage = formData.abv_percentage !== undefined && formData.abv_percentage !== null ? formData.abv_percentage : 0;
+        result.density = formData.density ?? density ?? 1.0;
       } else {
+        result.abv_percentage = null;
         result.density = null;
       }
       onConfirm(result);
@@ -286,12 +339,21 @@ export default function HFSInputModal({
       const value = formData[key as keyof typeof formData];
       return value !== undefined && value !== null ? value : '';
     } else {
-      // For v1, handle density specially
-      if (key === 'density') {
-        return density !== undefined && density !== null ? density : 1.0;
+      // For v1, use formData directly
+      if (key === 'ingredients_list') {
+        return Array.isArray(formData.ingredients_list) ? formData.ingredients_list.join(', ') : '';
       }
-      const value = scores[key as keyof typeof scores];
-      return value !== undefined && value !== null ? value : '';
+      if (key === 'density') {
+        return formData.density !== undefined && formData.density !== null ? formData.density : (density ?? 1.0);
+      }
+      // NOVA should not default to 0
+      if (key === 'NOVA') {
+        const value = formData[key as keyof typeof formData];
+        return value !== undefined && value !== null ? value : '';
+      }
+      // All other numeric fields default to 0
+      const value = formData[key as keyof typeof formData];
+      return value !== undefined && value !== null ? value : 0;
     }
   };
 
@@ -300,8 +362,8 @@ export default function HFSInputModal({
     // Don't show as presumed zero if field is currently focused
     if (focusedFields.has(key)) return false;
     
-    // Don't show s7 (NOVA) as presumed zero
-    if (key === 's7') return false;
+    // Don't show NOVA as presumed zero
+    if (key === 'NOVA') return false;
     
     if (isV2) {
       if (key === 'ingredients_list') return false;
@@ -310,9 +372,9 @@ export default function HFSInputModal({
     } else {
       if (key === 'density') {
         // Density defaults to 1.0, so only show as zero if explicitly 0
-        return density === 0;
+        return formData.density === 0;
       }
-      const value = scores[key as keyof typeof scores];
+      const value = formData[key as keyof typeof formData];
       return value === undefined || value === null;
     }
   };
@@ -333,50 +395,74 @@ export default function HFSInputModal({
             </button>
           </div>
 
-          {/* Liquid checkbox - shown first for both v1 and v2 */}
-          <div className="mb-4">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isLiquid}
-                onChange={(e) => handleLiquidChange(e.target.checked)}
-                className="w-4 h-4 cursor-pointer"
-              />
-              <span className="text-sm font-medium text-text-main/80">
-                {dict?.pages?.edit?.labelLiquid || 'Líquido'}
-              </span>
-            </label>
-          </div>
-
           {isV2 ? (
             <>
-              {/* Ingredients list field */}
-              <div className="mb-3">
-                <label className="text-xs font-medium text-text-main/80 mb-1 block">
-                  {v2IngredientsField.label}
+              {/* Product name and brand - shown as labels at the top for V2 */}
+              <div className="mb-4 space-y-3">
+                {/* Product name - larger font, no label */}
+                <div className="text-lg font-semibold text-text-main">
+                  {getFieldValue('product_name') || '—'}
+                </div>
+                {/* Brand - no label */}
+                <div className="text-sm text-text-main/80">
+                  {getFieldValue('brand') || '—'}
+                </div>
+              </div>
+
+              {/* Ingredients list - editable textarea for V2 */}
+              <div className="mb-4">
+                <label className="text-xs font-medium text-text-main/80 mb-1 flex items-center gap-1.5">
+                  <span>{v2IngredientsField.label}</span>
                 </label>
                 <textarea
-                  value={getFieldValue('ingredients_list') as string}
-                  onChange={(e) => handleChange('ingredients_list', e.target.value)}
-                  placeholder="—"
+                  value={getFieldValue('ingredients_list') || ''}
+                  onChange={(e) => {
+                    const newValue = e.target.value;
+                    handleChange('ingredients_list', newValue);
+                  }}
+                  onFocus={() => setFocusedFields(prev => new Set(prev).add('ingredients_list'))}
+                  onBlur={() => {
+                    setFocusedFields(prev => {
+                      const next = new Set(prev);
+                      next.delete('ingredients_list');
+                      return next;
+                    });
+                  }}
+                  placeholder={getNoneText(dict)}
                   rows={3}
                   className="w-full px-3 py-2 bg-background border border-text-main/20 rounded-theme text-sm text-text-main focus:outline-none focus:border-primary resize-none"
                 />
               </div>
 
-              {/* Special fields: serving size, declared processes, declared special nutrients */}
+              {/* Liquid checkbox */}
+              <div className="mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isLiquid}
+                    onChange={(e) => handleLiquidChange(e.target.checked)}
+                    className="w-4 h-4 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-text-main/80">
+                    {dict?.pages?.edit?.labelLiquid || 'Líquido'}
+                  </span>
+                </label>
+              </div>
+
+              {/* Special fields: serving size and location */}
               <div className="grid grid-cols-2 gap-3 mb-3">
-                {v2SpecialFields.map(({ key, label, type }) => {
+                {v2SpecialFields.map((field) => {
+                  const { key, label, type, isTextArea: fieldIsTextArea } = field as typeof field & { isTextArea?: boolean };
                   const rawValue = getFieldValue(key);
-                  const isTextArea = type === 'text';
-                  const isDeclaredField = key === 'declared_processes' || key === 'declared_special_nutrients';
+                  const isTextArea = fieldIsTextArea !== undefined ? fieldIsTextArea : (type !== 'number');
+                  const isDeclaredField = key === 'location';
                   const noneText = getNoneText(dict);
                   const isEmpty = !rawValue || rawValue === '';
-                  const presumedZero = !isTextArea && isPresumedZero(key);
+                  const presumedZero = !isTextArea && !isDeclaredField && isPresumedZero(key);
                   const isFocused = focusedFields.has(key);
                   const displayValue = isTextArea 
                     ? (isDeclaredField && isEmpty ? '' : String(rawValue || ''))
-                    : (presumedZero && !isFocused ? '' : String(rawValue || ''));
+                    : (isDeclaredField && isEmpty ? '' : (presumedZero && !isFocused ? '' : String(rawValue || '')));
                   
                   // Get default value configuration
                   // Convert array to string for getDefaultValueConfig (it expects string | number | undefined)
@@ -423,10 +509,21 @@ export default function HFSInputModal({
                         />
                       ) : (
                         <input
-                          type={type}
-                          step={key === 'serving_size_value' ? '1' : '0.1'}
+                          type={type === 'number' ? 'number' : 'text'}
+                          step={type === 'number' ? (key === 'serving_size_value' ? '1' : '0.1') : undefined}
                           value={displayValue}
-                          onChange={(e) => handleChange(key, e.target.value)}
+                          onChange={(e) => {
+                            if (type === 'text') {
+                              const newValue = e.target.value;
+                              if (newValue === '' || newValue === noneText) {
+                                handleChange(key, '');
+                              } else {
+                                handleChange(key, newValue);
+                              }
+                            } else {
+                              handleChange(key, e.target.value);
+                            }
+                          }}
                           onFocus={() => setFocusedFields(prev => new Set(prev).add(key))}
                           onBlur={() => {
                             setFocusedFields(prev => {
@@ -542,9 +639,98 @@ export default function HFSInputModal({
                   );
                 })}
               </div>
+
+              {/* DECLARAÇÕES DA EMBALAGEM section */}
+              <h4 className="text-xs font-bold text-text-main/60 mb-2 uppercase mt-4">
+                {dict?.hfsScores?.packageDeclarationsTitle || 'DECLARAÇÕES DA EMBALAGEM'}
+              </h4>
+              <div className="grid grid-cols-2 gap-3 mb-3">
+                {v2DeclarationFields.map((field) => {
+                  const { key, label } = field;
+                  const rawValue = getFieldValue(key);
+                  const noneText = getNoneText(dict);
+                  const isEmpty = !rawValue || rawValue === '';
+                  const isFocused = focusedFields.has(key);
+                  const displayValue = isEmpty ? '' : String(rawValue || '');
+                  
+                  // Get default value configuration
+                  const configValue = Array.isArray(rawValue) ? rawValue.join(', ') : rawValue;
+                  const defaultConfig = getDefaultValueConfig({
+                    value: configValue,
+                    defaultValue: undefined,
+                    showDefaultAsItalic: false,
+                    placeholder: isEmpty ? noneText : undefined,
+                    isFocused,
+                    dict
+                  });
+                  
+                  return (
+                    <div key={key} className="flex flex-col col-span-2">
+                      <label className="text-xs font-medium text-text-main/80 mb-1 flex items-center gap-1.5">
+                        <span>{label}</span>
+                        {defaultConfig.showIcon && <DefaultValueIcon tooltipText={defaultConfig.tooltipText} />}
+                      </label>
+                      <textarea
+                        value={displayValue}
+                        onChange={(e) => {
+                          const newValue = e.target.value;
+                          if (newValue === '' || newValue === noneText) {
+                            handleChange(key, '');
+                          } else {
+                            handleChange(key, newValue);
+                          }
+                        }}
+                        onFocus={() => setFocusedFields(prev => new Set(prev).add(key))}
+                        onBlur={() => {
+                          setFocusedFields(prev => {
+                            const next = new Set(prev);
+                            next.delete(key);
+                            return next;
+                          });
+                        }}
+                        placeholder={defaultConfig.placeholder}
+                        rows={2}
+                        className={`w-full px-3 py-2 bg-background border border-text-main/20 rounded-theme text-sm text-text-main focus:outline-none focus:border-primary resize-none ${getPlaceholderClasses(defaultConfig.showItalic)}`}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
             </>
           ) : (
             <>
+              {/* Product name, brand, and ingredients list - shown as text at the top for V1 */}
+              <div className="mb-4 space-y-3">
+                {/* Product name - larger font */}
+                <div className="text-lg font-semibold text-text-main">
+                  {getFieldValue('product_name') || '—'}
+                </div>
+                {/* Brand */}
+                <div className="text-sm text-text-main/80">
+                  {getFieldValue('brand') || '—'}
+                </div>
+                {/* Ingredients list - as plain text */}
+                <div className="text-sm text-text-main">
+                  <span className="font-medium">Ingredientes: </span>
+                  {getFieldValue('ingredients_list') || '—'}
+                </div>
+              </div>
+
+              {/* Liquid checkbox */}
+              <div className="mb-4">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isLiquid}
+                    onChange={(e) => handleLiquidChange(e.target.checked)}
+                    className="w-4 h-4 cursor-pointer"
+                  />
+                  <span className="text-sm font-medium text-text-main/80">
+                    {dict?.pages?.edit?.labelLiquid || 'Líquido'}
+                  </span>
+                </label>
+              </div>
+
               <h4 className="text-xs font-bold text-text-main/60 mb-2 uppercase">
                 {t.parametersSubtitle || 'Dados'}
                 <span className="normal-case font-normal text-text-main/50 ml-2">
@@ -553,20 +739,21 @@ export default function HFSInputModal({
               </h4>
 
               <div className="grid grid-cols-2 gap-3">
-                {fields.map(({ key, label, type }) => {
+                {fields.filter(({ key }) => key !== 'ingredients_list').map(({ key, label, type }) => {
               const rawValue = getFieldValue(key);
-              const isS8 = key === 's8';
-              const isTextArea = type === 'text' && (key === 'ingredients_list' || key === 'declared_processes' || key === 'declared_special_nutrients');
+              const isNIng = key === 'n_ing';
+              const isTextArea = type === 'text' && (key === 'declared_processes' || key === 'declared_special_nutrients');
               const isDeclaredField = key === 'declared_processes' || key === 'declared_special_nutrients';
               const noneText = getNoneText(dict);
               const isEmpty = !rawValue || rawValue === '';
-              const showNone = isS8 && isEmpty;
-              const presumedZero = isPresumedZero(key) && !isS8;
+              const showNone = isNIng && isEmpty;
+              // NOVA should not be presumed zero, all other numeric fields should
+              const presumedZero = isPresumedZero(key) && !isNIng && key !== 'NOVA';
               const isFocused = focusedFields.has(key);
               
               // Determine placeholder
               let placeholder: string | undefined = undefined;
-              if (isS8 && showNone) {
+              if (isNIng && showNone) {
                 placeholder = noneText;
               } else if (isDeclaredField && isEmpty) {
                 placeholder = noneText;
@@ -583,12 +770,13 @@ export default function HFSInputModal({
               // Get default value configuration
               // Convert array to string for getDefaultValueConfig (it expects string | number | undefined)
               const configValue = isDeclaredField && isEmpty ? '' : (Array.isArray(rawValue) ? rawValue.join(', ') : rawValue);
-              // For numeric fields without a specific default, use 0 as default
-              const numericDefaultValue = !isTextArea && !isS8 && presumedZero && key !== 'density' ? 0 : undefined;
+              // For numeric fields (except NOVA), use 0 as default when empty
+              const hasDefaultZero = type === 'number' && key !== 'NOVA' && key !== 'density';
+              const numericDefaultValue = hasDefaultZero && (isEmpty || rawValue === 0 || rawValue === '0') ? 0 : undefined;
               const defaultConfig = getDefaultValueConfig({
                 value: configValue,
                 defaultValue: key === 'density' ? 1.0 : numericDefaultValue,
-                showDefaultAsItalic: presumedZero || key === 'density',
+                showDefaultAsItalic: (presumedZero && hasDefaultZero) || key === 'density',
                 placeholder,
                 isFocused,
                 dict
@@ -598,7 +786,7 @@ export default function HFSInputModal({
                 <div key={key} className={`flex flex-col ${isTextArea ? 'col-span-2' : ''}`}>
                   <label className="text-xs font-medium text-text-main/80 mb-1 flex items-center gap-1.5">
                     <span>{label}</span>
-                    {key === 's7' && (
+                    {key === 'NOVA' && (
                       <svg
                         className="w-4 h-4 text-text-main/50 hover:text-text-main/70 flex-shrink-0 cursor-help"
                         fill="none"
@@ -638,13 +826,13 @@ export default function HFSInputModal({
                         });
                       }}
                       placeholder={defaultConfig.placeholder || '—'}
-                      rows={key === 'ingredients_list' ? 3 : 2}
+                      rows={2}
                       className={`w-full px-3 py-2 bg-background border border-text-main/20 rounded-theme text-sm text-text-main focus:outline-none focus:border-primary resize-none ${getPlaceholderClasses(defaultConfig.showItalic)}`}
                     />
                   ) : (
                     <input
                       type={type}
-                      step={key === 's7' || key === 's8' || key === 'abv_percentage' || key === 'density' ? '1' : '0.1'}
+                        step={key === 'NOVA' || key === 'n_ing' ? '1' : '0.1'}
                       value={displayValue}
                       onChange={(e) => handleChange(key, e.target.value)}
                       onFocus={() => setFocusedFields(prev => new Set(prev).add(key))}
@@ -696,7 +884,7 @@ export default function HFSInputModal({
                       </label>
                       <input
                         type={type}
-                        step="0.01"
+                        step={key === 'abv_percentage' ? '0.1' : '0.01'}
                         value={displayValue}
                         onChange={(e) => handleChange(key, e.target.value)}
                         onFocus={() => setFocusedFields(prev => new Set(prev).add(key))}
@@ -733,7 +921,8 @@ export default function HFSInputModal({
           </button>
           <button
             onClick={handleConfirm}
-            className="px-4 py-1.5 rounded-theme font-bold text-sm text-white bg-primary hover:opacity-90 transition shadow-lg"
+            disabled={!isV2 && (formData.NOVA === undefined || formData.NOVA === null)}
+            className="px-4 py-1.5 rounded-theme font-bold text-sm text-white bg-primary hover:opacity-90 transition shadow-lg disabled:bg-text-main/20 disabled:text-text-main/50 disabled:cursor-not-allowed"
           >
             {t.confirm || 'Confirmar'}
           </button>
